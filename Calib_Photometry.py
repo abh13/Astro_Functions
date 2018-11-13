@@ -209,7 +209,10 @@ def apass_search(searchrad,waveband,targetra,targetdec):
 		print(e)
 		print('')
 	
-	return star_ra,star_dec,star_mag,star_magerr
+	# Create list with catalogue name
+	star_cat = ['APASS'] * len(star_ra)
+	
+	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
 def sdss_search(searchrad,waveband,targetra,targetdec):	
 	""" Search for all stars within search radius of target in SDSS
@@ -296,9 +299,12 @@ def sdss_search(searchrad,waveband,targetra,targetdec):
 	except requests.exceptions.RequestException as e:
 		print('\nException raised for SDSS url!')
 		print(e)
-		print('')	
+		print('')
 
-	return star_ra,star_dec,star_mag,star_magerr
+	# Create list with catalogue name
+	star_cat = ['SDSS'] * len(star_ra)
+	
+	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
 def panstarrs_search(searchrad,waveband,targetra,targetdec):	
 	""" Search for all stars within search radius of target in PanSTARRs
@@ -473,7 +479,10 @@ def panstarrs_search(searchrad,waveband,targetra,targetdec):
 					star_mag.append(zmag_aper[i])
 					star_magerr.append(zmagerr_aper[i])
 					
-	return star_ra,star_dec,star_mag,star_magerr
+	# Create list with catalogue name
+	star_cat = ['PanSTARRs'] * len(star_ra)
+	
+	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
 def skymapper_search(searchrad,waveband,targetra,targetdec):	
 	""" Search for all stars within search radius of target in Skymapper
@@ -642,13 +651,16 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 					star_ra.append(float(sky_ra[i]))
 					star_dec.append(float(sky_dec[i]))
 	
-	return star_ra,star_dec,star_mag,star_magerr
+	# Create list with catalogue name
+	star_cat = ['SkyMapper'] * len(star_ra)
+	
+	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
-def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,ra,dec,sepmag,
-sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
+def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
+ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
 	""" Calibrate magnitude offset using field stars """
 	
-	### For catalog star mags with given error as 0, change this to 0.1 mag
+	### For catalogue star mags with given error as 0, change this to 0.1 mag
 	star_magerr = [0.1 if (x == 0.0 or x == -0.0) else x for x in star_magerr]
 
 	### Crossmatch SExtractor detections output with nearby known stars
@@ -664,7 +676,8 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 	orig_stdout = sys.stdout
 	resultf = open('cm_results.txt', "w")
 	sys.stdout = resultf
-	print('DetRA   DetDec  CatRA   CatDec  MagRe  MagReErr  MagIn  MagInErr')
+	print('# DetRA, ','DetDec, ','CatRA, ','CatDec, ','MagCat, ','MagCatErr,',
+		'MagIn, ','MagInErr, ','Catalogue')
 	
 	for i in range(len(sepmag)):	
 		targetra_diff = (ra[i] - targetra)/0.000277778
@@ -690,9 +703,11 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 						real_mage.append(star_magerr[j])
 						fake_mag.append(sepmag[i])
 						fake_mage.append(sepmagerr[i])
-						print(ra[i],' ',dec[i],' ',star_ra[j],' ',star_dec[j]
-						,' ',star_mag[j],' ',star_magerr[j],' ',sepmag[i],
-						' ',sepmagerr[i])
+						print(round(ra[i],5),',',round(dec[i],5),',',
+							round(star_ra[j],5),',',round(star_dec[j],5),',',
+							round(star_mag[j],5),',',round(star_magerr[j],5),
+							',',round(sepmag[i],5),',',round(sepmagerr[i],5),
+							',',star_cat[j])
 
 	sys.stdout = orig_stdout
 	resultf.close()
@@ -722,14 +737,21 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 		param, pcov = curve_fit(line1, xdata, ydata, sigma=yerrors)
 		paramerr = np.sqrt(np.diag(pcov))
 
-		### Plot real mag vs instrumental mag
+		### Plot real mag vs instrumental mag, 1-sigma errors and clipped data
+		### boundaries (when appropriate)
 		xx = np.linspace(min(xdata),max(xdata),1000)
 		ymod1 = line1(xx,param)
-		ymodhigh1 = line1(xx,param+sigma*paramerr)
-		ymodlow1 = line1(xx,param-sigma*paramerr)
+		ymodhighl = line1(xx,param+paramerr)
+		ymodlowl = line1(xx,param-paramerr)
 		ax1.plot(xx,ymod1,color='red')
-		ax1.plot(xx,ymodhigh1,color='red',linestyle='--')
-		ax1.plot(xx,ymodlow1,color='red',linestyle='--')
+		ax1.plot(xx,ymodhighl,color='red',linestyle='--')
+		ax1.plot(xx,ymodlowl,color='red',linestyle='--')
+		
+		if figname == 'calib.png':
+			ymodhigh1c = line1(xx,param+sigma*paramerr)
+			ymodlow1c = line1(xx,param-sigma*paramerr)
+			ax1.plot(xx,ymodhigh1c,color='blue',linestyle='--')
+			ax1.plot(xx,ymodlow1c,color='blue',linestyle='--')
 
 		### Plot delta mag (offset) vs instrumental mag
 		delta = []
@@ -740,8 +762,8 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 			deltaerrors.append(np.sqrt(xerrors[i]**2 + yerrors[i]**2))
 			
 		ymod2 = line2(xx,param)
-		ymodhigh2 = line2(xx,param+sigma*paramerr)
-		ymodlow2 = line2(xx,param-sigma*paramerr)
+		ymodhigh2 = line2(xx,param+paramerr)
+		ymodlow2 = line2(xx,param-paramerr)
 		ax2 = fig.add_subplot(212,sharex=ax1)
 		ax2.errorbar(x=xdata,y=delta,xerr=xerrors,yerr=deltaerrors,fmt='.')
 		ax2.plot(xx,ymod2,color='red')
@@ -749,8 +771,16 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 		ax2.plot(xx,ymodlow2,color='red',linestyle='--')
 		ax2.set_ylabel('$\Delta$ Mag')
 		ax2.set_xlabel('SEP Calculated Mag')
+		
+		if figname == 'calib.png':
+			ymodhigh2c = line2(xx,param+sigma*paramerr)
+			ymodlow2c = line2(xx,param-sigma*paramerr)
+			ax2.plot(xx,ymodhigh2c,color='blue',linestyle='--')
+			ax2.plot(xx,ymodlow2c,color='blue',linestyle='--')
+
 		plt.setp(ax1.get_xticklabels(), visible=False)
 		plt.savefig(directory+figname)
+		
 		return param, paramerr
 		
 	### Plot raw data and set up clipping tool
@@ -761,7 +791,7 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 
 	def clipp(xdata,ydata,xerrors,yerrors,param,paramerr,sigma):
 		# Clips any data that is X-sigma or further away from the best
-		# fitting	line
+		# fitting line
 		
 		xdatac = []
 		xerrorc = []
@@ -804,15 +834,16 @@ sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 		magerr_f = np.sqrt(np.array(sepmagerr)**2+paramerrc**2)
 		print('Magnitude Offset (clipped) =',paramc,'+-',paramerrc)
 	
-	### Print results to text file
+	### Print calibrated source results to text file
 	orig_stdout = sys.stdout
-	resultf = open('final_props.txt', "w")
+	resultf = open('calibrated_sources.txt', "w")
 	sys.stdout = resultf
 	print("# mag, magerr, xpixel, ypixel, ra, dec")	
 	
 	for i in range(len(mag_f)):
-		print(mag_f[i],',',magerr_f[i],',',xpixel[i],',',ypixel[i],',',ra[i],
-			  ',',dec[i])
+		print(round(mag_f[i],5),',',round(magerr_f[i],5),',',round(xpixel[i],
+			5),',',round(ypixel[i],5),',',round(ra[i],5),',',round(dec[i],5))
+			
 	sys.stdout = orig_stdout
 	resultf.close()
 
@@ -830,23 +861,25 @@ def main():
 	photresults = im_phot(directory,gain,im_file,aperture)
 	targetra,targetdec,sepmag,sepmagerr,ra,dec,xpixel,ypixel = photresults
 	
-	# Scrape the four catalogs for field stars
-	sdss_ra,sdss_dec,sdss_mag,sdss_magerr = sdss_search(searchrad,waveband,
-		targetra,targetdec)
-	ps_ra,ps_dec,ps_mag,ps_magerr = panstarrs_search(searchrad,waveband,
-		targetra,targetdec)
-	apass_ra,apass_dec,apass_mag,apass_magerr = apass_search(searchrad,
+	# Scrape the four catalogues for field stars
+	sdss_ra,sdss_dec,sdss_mag,sdss_magerr,sdss_cat = sdss_search(searchrad,
 		waveband,targetra,targetdec)
-	sm_ra,sm_dec,sm_mag,sm_magerr = skymapper_search(searchrad,waveband,
-		targetra,targetdec)
+	ps_ra,ps_dec,ps_mag,ps_magerr,ps_cat = panstarrs_search(searchrad,
+		waveband,targetra,targetdec)
+	apass_ra,apass_dec,apass_mag,apass_magerr,apass_cat = apass_search(
+		searchrad,waveband,targetra,targetdec)
+	sm_ra,sm_dec,sm_mag,sm_magerr,sm_cat = skymapper_search(searchrad,
+		waveband,targetra,targetdec)
 		
 	# Add all above star properties to single lists and find mag offset
 	star_ra = sdss_ra + ps_ra + apass_ra + sm_ra
 	star_dec = sdss_dec + ps_dec + apass_dec + sm_dec
 	star_mag = sdss_mag + ps_mag + apass_mag + sm_mag
 	star_magerr = sdss_magerr + ps_magerr + apass_magerr + sm_magerr
-	return mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,ra,dec,
-		sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel)
+	star_cat = sdss_cat + ps_cat + apass_cat + sm_cat
+	
+	return mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
+		ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel)
 
 if __name__ == '__main__':
     sys.exit(main())

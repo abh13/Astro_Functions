@@ -232,7 +232,7 @@ def fors2_pol(directory):
 	corr_theta_values = position_angle(theta_values,q_values,u_values,target_list)
 
 	def parameter_errors(norm_flux_err_0,norm_flux_err_22,norm_flux_err_45,
-	norm_flux_err_67,real_p,ordin_data_0,extra_data_0,ordin_data_22,
+	norm_flux_err_67,p_values,ordin_data_0,extra_data_0,ordin_data_22,
 	extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
 	target_list):
 		# Calculate errors on Q, U, P, Theta and SD of the average flux per angle
@@ -315,8 +315,8 @@ def fors2_pol(directory):
 			eta.append(p_values[k]*snr_fav[k])
 
 		for l in range(0,len(target_list),1):
-			p_corr.append(real_p[l]-(sig_p[l]**2*(1-np.exp(-(real_p[l]**2/
-				sig_p[l]**2)))/(2*real_p[l])))
+			p_corr.append(p_values[l]-(sig_p[l]**2*(1-np.exp(-(p_values[l]**2/
+				sig_p[l]**2)))/(2*p_values[l])))
 						   
 		return(eta,p_corr)
 

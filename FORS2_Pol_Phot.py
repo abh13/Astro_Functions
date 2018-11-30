@@ -34,23 +34,23 @@ import argparse
 def get_args():
 	# Parse command line arguments
 	parser = argparse.ArgumentParser(description=__doc__)
+	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
+		help='Required directory')
 	parser.add_argument("Background",metavar="BKG",type=str,action="store",
 		help="Background calculation to use for photometry calibration - \
 		choices are GLOBAL/LOCAL")
-	parser.add_argument('--d',type=str,default=os.getcwd(),dest='directory',
-		help='Desired directory (default = current directory)')
 	parser.add_argument("--ap",type=float,default=1.5,dest='aperture',
 		help="Source aperture diameter size X*FWHM (default = 1.5)")
 		
 	args = parser.parse_args()
 	
+	directory = args.__dict__['Directory']
 	bkg_type = args.__dict__['Background']
-	directory = args.directory
 	apermul = args.aperture
-	return bkg_type,directory,apermul
+	return directory,bkg_type,apermul
 	
 	
-def fors2_pol_phot(bkg_type,directory,apermul):
+def fors2_pol_phot(directory,bkg_type,apermul):
 	""" Perform photometry on the four wave-plate angle images """
 	
 	# Make sure background type is valid!
@@ -148,8 +148,8 @@ def fors2_pol_phot(bkg_type,directory,apermul):
 				
 		# Store the ordinary and extraordinary beam source images and
 		# create apertures for aperture photometry 
-		ann_in = 4.5*fwhm
-		ann_out = ann_in + 9
+		ann_in = 4*fwhm
+		ann_out = ann_in + 10
 		positions = ((tot_sources['xcentroid'][0],tot_sources['ycentroid']
 			[0]),(tot_sources['xcentroid'][1],tot_sources['ycentroid'][1]))
 		aperture = CircularAperture(positions, r=0.5*apermul*fwhm)
@@ -273,8 +273,8 @@ def fors2_pol_phot(bkg_type,directory,apermul):
 		
 def main():
 	# Run script from command line
-	bkg_type,directory,apermul = get_args()
-	return fors2_pol_phot(bkg_type,directory,apermul)
+	directory,bkg_type,apermul = get_args()
+	return fors2_pol_phot(directory,bkg_type,apermul)
 	
 if __name__ == '__main__':
     sys.exit(main())

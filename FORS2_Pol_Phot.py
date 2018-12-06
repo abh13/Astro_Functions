@@ -250,9 +250,9 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		fig.savefig(image_fn)
 
 		# Write ordinary and extraordinary beams to file following the convention
-		# angleXXX_ord.1 and angleXXX_exord.1
+		# angleXXX_ord.txt and angleXXX_exord.txt
 		orig_stdout = sys.stdout
-		ord_result_file= directory + 'angle' + angle[k] + '_ord.1'
+		ord_result_file= directory + 'angle' + angle[k] + '_ord.txt'
 		ordresultf = open(ord_result_file, 'w')
 		sys.stdout = ordresultf
 		print('# id, xpixel, ypixel, fluxbgs, sourcearea, meanbg, bgerr, bgarea') 
@@ -261,7 +261,7 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		ordresultf.close()
 
 		orig_stdout = sys.stdout
-		exord_result_file = directory + 'angle' + angle[k] + '_exord.1'
+		exord_result_file = directory + 'angle' + angle[k] + '_exord.txt'
 		exordresultf = open(exord_result_file, 'w')
 		sys.stdout = exordresultf
 		print('# id, xpixel, ypixel, fluxbgs, sourcearea, meanbg, bgerr, bgarea')

@@ -6,7 +6,7 @@
 
 __doc__ = """ This script calculates the polarisation measurements for FORS2
 observations. Please make sure the eight input files follow the naming
-convention - angleXXX_ord.1/angleXXX_exord.1 """
+convention - angleXXX_ord.txt/angleXXX_exord.txt """
 
 import numpy as np
 import os
@@ -28,14 +28,14 @@ def fors2_pol(directory):
 	
 	# Read in files
 	folder_path = directory
-	file_name_ord0 = 'angle0_ord.1'
-	file_name_ord22 = 'angle225_ord.1'
-	file_name_ord45 = 'angle45_ord.1'
-	file_name_ord67 = 'angle675_ord.1'
-	file_name_ext0 = 'angle0_exord.1'
-	file_name_ext22 = 'angle225_exord.1'
-	file_name_ext45 = 'angle45_exord.1'
-	file_name_ext67 = 'angle675_exord.1'
+	file_name_ord0 = 'angle0_ord.txt'
+	file_name_ord22 = 'angle225_ord.txt'
+	file_name_ord45 = 'angle45_ord.txt'
+	file_name_ord67 = 'angle675_ord.txt'
+	file_name_ext0 = 'angle0_exord.txt'
+	file_name_ext22 = 'angle225_exord.txt'
+	file_name_ext45 = 'angle45_exord.txt'
+	file_name_ext67 = 'angle675_exord.txt'
 
 	ordin_0 = os.path.join(folder_path,file_name_ord0)
 	ordin_22 = os.path.join(folder_path,file_name_ord22)

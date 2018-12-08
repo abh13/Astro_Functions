@@ -58,8 +58,9 @@ def get_args():
 	
 	# Check for valid filters
 	if (waveband != 'V' and waveband != 'B' and waveband != 'R' and
-	waveband != 'u' and waveband != 'i' and waveband != 'g'
-	and waveband != 'r'	and waveband != 'z'):
+		waveband != 'u' and waveband != 'i' and waveband != 'g'
+		and waveband != 'r'	and waveband != 'z'):
+		
 		print('Script does not calibrate for this waveband!')
 		sys.exit()
 		
@@ -128,6 +129,7 @@ def im_phot(directory,gain,im_file,aperture):
 		ax.add_artist(out)
 
 	plt.savefig(directory+'detections.png')
+	
 	return targetra,targetdec,sepmag,sepmagerr,ra,dec,xpixel,ypixel
 
 def apass_search(searchrad,waveband,targetra,targetdec):
@@ -396,14 +398,15 @@ def panstarrs_search(searchrad,waveband,targetra,targetdec):
 	for i in range(len(psra)):
 	
 		if (gmag_psf[i] != -999.000 and gmag_kron[i] != -999.000 and
-		gmag_aper[i] != -999.000 and rmag_psf[i] != -999.000 and 
-		rmag_kron[i] != -999.000 and rmag_aper[i] != -999.000):		
+			gmag_aper[i] != -999.000 and rmag_psf[i] != -999.000 and 
+			rmag_kron[i] != -999.000 and rmag_aper[i] != -999.000):		
+			
 			if (np.abs(gmag_psf[i] - gmag_kron[i]) < 0.25 and 
-			np.abs(gmag_psf[i] - gmag_aper[i]) < 0.25 and 
-			np.abs(gmag_aper[i] - gmag_kron[i]) < 0.25 and
-			np.abs(rmag_psf[i] - rmag_kron[i]) < 0.25 and 
-			np.abs(rmag_psf[i] - rmag_aper[i]) < 0.25 and 
-			np.abs(rmag_aper[i] - rmag_kron[i]) < 0.25):
+				np.abs(gmag_psf[i] - gmag_aper[i]) < 0.25 and 
+				np.abs(gmag_aper[i] - gmag_kron[i]) < 0.25 and
+				np.abs(rmag_psf[i] - rmag_kron[i]) < 0.25 and 
+				np.abs(rmag_psf[i] - rmag_aper[i]) < 0.25 and 
+				np.abs(rmag_aper[i] - rmag_kron[i]) < 0.25):
 			
 				if waveband == 'V':
 					V_mag = (gmag_aper[i]-0.5784*(gmag_aper[i]-rmag_aper[i])
@@ -436,44 +439,56 @@ def panstarrs_search(searchrad,waveband,targetra,targetdec):
 					star_dec.append(psdec[i])
 					
 		if waveband == 'g':
+			
 			if (gmag_psf[i] != -999.000 and gmag_kron[i] != -999.000 and 
-			gmag_aper[i] != -999.000):
+				gmag_aper[i] != -999.000):
+				
 				if (np.abs(gmag_psf[i] - gmag_kron[i]) < 0.25 and 
-				np.abs(gmag_psf[i] - gmag_aper[i]) < 0.25 and 
-				np.abs(gmag_aper[i] - gmag_kron[i]) < 0.25):
+					np.abs(gmag_psf[i] - gmag_aper[i]) < 0.25 and 
+					np.abs(gmag_aper[i] - gmag_kron[i]) < 0.25):
+					
 					star_mag.append(gmag_aper[i])
 					star_magerr.append(gmagerr_aper[i])
 					star_ra.append(psra[i])
 					star_dec.append(psdec[i])
 
 		if waveband == 'r':
+			
 			if (rmag_psf[i] != -999.000 and rmag_kron[i] != -999.000 and
-			rmag_aper[i] != -999.000):
+				rmag_aper[i] != -999.000):
+				
 				if (np.abs(rmag_psf[i] - rmag_kron[i]) < 0.25 and
-				np.abs(rmag_psf[i] - rmag_aper[i]) < 0.25 and
-				np.abs(rmag_aper[i] - rmag_kron[i]) < 0.25):
+					np.abs(rmag_psf[i] - rmag_aper[i]) < 0.25 and
+					np.abs(rmag_aper[i] - rmag_kron[i]) < 0.25):
+					
 					star_mag.append(rmag_aper[i])
 					star_magerr.append(rmagerr_aper[i])
 					star_ra.append(psra[i])
 					star_dec.append(psdec[i])
 				
 		if waveband == 'i' :           
+			
 			if (imag_psf[i] != -999.000 and imag_kron[i] != -999.000 and
-			imag_aper[i] != -999.000):
+				imag_aper[i] != -999.000):
+				
 				if (np.abs(imag_psf[i] - imag_kron[i]) < 0.25 and 
-				np.abs(imag_psf[i] - imag_aper[i]) < 0.25 and 
-				np.abs(imag_aper[i] - imag_kron[i]) < 0.25):
+					np.abs(imag_psf[i] - imag_aper[i]) < 0.25 and 
+					np.abs(imag_aper[i] - imag_kron[i]) < 0.25):
+					
 					star_ra.append(psra[i])
 					star_dec.append(psdec[i])
 					star_mag.append(imag_aper[i])
 					star_magerr.append(imagerr_aper[i])
 
 		if waveband == 'z' :           
+			
 			if (zmag_psf[i] != -999.000 and zmag_kron[i] != -999.000 and
-			zmag_aper[i] != -999.000):
+				zmag_aper[i] != -999.000):
+				
 				if (np.abs(zmag_psf[i] - zmag_kron[i]) < 0.25 and
-				np.abs(zmag_psf[i] - zmag_aper[i]) < 0.25 and
-				np.abs(zmag_aper[i] - zmag_kron[i]) < 0.25):
+					np.abs(zmag_psf[i] - zmag_aper[i]) < 0.25 and
+					np.abs(zmag_aper[i] - zmag_kron[i]) < 0.25):
+					
 					star_ra.append(psra[i])
 					star_dec.append(psdec[i])
 					star_mag.append(zmag_aper[i])
@@ -571,9 +586,11 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 	for i in range(len(sky_ra)):
 	
 		if (sky_g_psf[i] != '' and sky_g_petro[i] != '' and
-		sky_r_psf[i] != '' and sky_r_petro[i] != ''):
+			sky_r_psf[i] != '' and sky_r_petro[i] != ''):
+			
 			if (np.abs(float(sky_g_psf[i]) - float(sky_g_petro[i])) < 0.25
-			and np.abs(float(sky_r_psf[i]) - float(sky_r_petro[i])) < 0.25):
+				and np.abs(float(sky_r_psf[i]) - float(sky_r_petro[i]))
+				< 0.25):
 			
 				if waveband == 'V':
 					V_mag = float(sky_g_psf[i])-0.0038
@@ -614,6 +631,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 		if waveband == 'u':
 			if (sky_u_psf[i] != '' and sky_u_petro[i] != ''):
 				if (np.abs(float(sky_u_psf[i]) - float(sky_u_petro[i]))<0.25):
+					
 					star_mag.append(float(sky_u_psf[i]))
 					star_magerr.append(float(sky_u_psf_err[i]))
 					star_ra.append(float(sky_ra[i]))
@@ -622,6 +640,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 		if waveband == 'g':
 			if (sky_g_psf[i] != '' and sky_g_petro[i] != ''):
 				if (np.abs(float(sky_g_psf[i]) - float(sky_g_petro[i]))<0.25):
+					
 					star_mag.append(float(sky_g_psf[i]))
 					star_magerr.append(float(sky_g_psf_err[i]))
 					star_ra.append(float(sky_ra[i]))
@@ -630,6 +649,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 		if waveband == 'r':
 			if (sky_r_psf[i] != '' and sky_r_petro[i] != ''):
 				if (np.abs(float(sky_r_psf[i]) - float(sky_r_petro[i]))<0.25):
+					
 					star_mag.append(float(sky_r_psf[i]))
 					star_magerr.append(float(sky_r_psf_err[i]))
 					star_ra.append(float(sky_ra[i]))
@@ -638,6 +658,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 		if waveband == 'i' :           
 			if (sky_i_psf[i] != '' and sky_i_petro[i] != ''):
 				if (np.abs(float(sky_i_psf[i]) - float(sky_i_petro[i]))<0.25):
+					
 					star_mag.append(float(sky_i_psf[i]))
 					star_magerr.append(float(sky_i_psf_err[i]))
 					star_ra.append(float(sky_ra[i]))
@@ -657,7 +678,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
 def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
-ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
+	ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
 	""" Calibrate magnitude offset using field stars """
 	
 	### For catalogue star mags with given error as 0, change this to 0.1 mag
@@ -718,8 +739,9 @@ ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 		sys.exit()
 
 	def calib_plot(xdata,ydata,xerrors,yerrors,sigma,figname):    
-		# Find calibration offset
+		""" Find calibration offset """
 		
+		# Set up figure
 		fig = plt.figure()
 		ax1 = fig.add_subplot(211)
 		ax1.set_ylabel('Real Mag (AB)')
@@ -790,14 +812,15 @@ ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):
 	print('Magnitude Offset (no clipping) =',param,'+-',paramerr)
 
 	def clipp(xdata,ydata,xerrors,yerrors,param,paramerr,sigma):
-		# Clips any data that is X-sigma or further away from the best
-		# fitting line
+		""" Clips any data that is X-sigma or further away from the best
+		fitting line """
 		
 		xdatac = []
 		xerrorc = []
 		ydatac = []
 		yerrorc = []
 		
+		# Clip data between median and X-sigma limits
 		for i in range(len(xdata)):	
 			yhigh = xdata[i]+float(param)+sigma*float(paramerr)
 			ylow = xdata[i]+float(param)-sigma*float(paramerr)

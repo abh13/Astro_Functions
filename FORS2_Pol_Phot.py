@@ -12,7 +12,8 @@ File names for each half-wave plate angle should be:
 0ang.fits,
 225ang.fits,
 45ang.fits,
-675ang.fits """
+675ang.fits
+"""
 
 from astropy.io import fits
 from astropy.table import vstack
@@ -30,6 +31,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import argparse
+
 
 def get_args():
 	# Parse command line arguments
@@ -51,7 +53,47 @@ def get_args():
 	
 	
 def fors2_pol_phot(directory,bkg_type,apermul):
-	""" Perform photometry on the four wave-plate angle images """
+	# Perform photometry on the four wave-plate angle images and both beams.
+	# Then save to files (eight in total).
+	
+	
+	def local_back_stats(position):
+		# Create custom rectangular background annulus for estimation of
+		# local background if selected a background type.
+		
+		xpixel, ypixel = position
+		xlowi = int(round(xpixel - ann_in/2))
+		xlowo = int(round(xpixel - ann_out/2))
+		xhii = int(round(xpixel + ann_in/2))
+		xhio = int(round(xpixel + ann_in/2))
+		ylowi = int(round(ypixel - ann_in/2))
+		ylowo = int(round(ypixel - ann_out/2))
+		yhii = int(round(ypixel + ann_in/2))
+		yhio = int(round(ypixel + ann_in/2))
+		bg_data = []
+		
+		for i in range(xlowo,xlowi+1,1):			
+			for j in range(ylowo,yhio+1,1):
+				bg_data.append(image_data[j,i]) 
+				
+		for i in range(xlowi,xhii+1,1):			
+			for j in range(ylowo,ylowi+1,1):
+				bg_data.append(image_data[j,i])
+				
+		for i in range(xlowi,xhii+1,1):			
+			for j in range(yhii,yhio+1,1):
+				bg_data.append(image_data[j,i])
+				
+		for i in range(xhii,xhio+1,1):			
+			for j in range(ylowo,yhio+1,1):
+				bg_data.append(image_data[j,i])
+				
+		bg_data = np.array(bg_data)
+		ann_area = len(bg_data)
+		source_ap = CircularAperture((position),r=0.5*apermul*fwhm)
+		tot_source_bg = np.mean(bg_data)*source_ap.area()
+		return tot_source_bg, np.mean(bg_data), np.std(bg_data), ann_area
+		
 	
 	# Make sure background type is valid!
 	if (bkg_type != 'GLOBAL' and bkg_type != 'LOCAL'):
@@ -69,7 +111,8 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 	ang_dec = ['0','22.5','45','67.5']
 	label = ['$0^{\circ}$ image','$22.5^{\circ}$ image',
 			 '$45^{\circ}$ image','$67.5^{\circ}$ image']
-
+	
+	# Loop over files
 	for k in range(0,len(angle),1):
 
 		# Open fits file, extract pixel flux data and remove saturated pixels
@@ -82,7 +125,6 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 			print('Please check the input!')
 			sys.exit()
 		
-
 		# Remove bad pixels and mask edges
 		image_data[image_data > 60000] = 0
 		image_data[image_data < 0] = 0    
@@ -117,8 +159,7 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		sources_e['ycentroid'] = sources_e['ycentroid'] + yexord - 18
 
 		# Estimate the FWHM of the source by simulating a 2D Gaussian (crudely)
-		fwhm = []
-		
+		fwhm = []		
 		for i in range(0,2,1):
 		
 			if i == 0:
@@ -153,44 +194,7 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		positions = ((tot_sources['xcentroid'][0],tot_sources['ycentroid']
 			[0]),(tot_sources['xcentroid'][1],tot_sources['ycentroid'][1]))
 		aperture = CircularAperture(positions, r=0.5*apermul*fwhm)
-		phot_table = aperture_photometry(image_data,aperture)
-		
-		def local_back_stats(position):
-			# Create custom rectangular background annulus for estimation of
-			# local background of mean and standard error when applicable
-			
-			xpixel, ypixel = position
-			xlowi = int(round(xpixel - ann_in/2))
-			xlowo = int(round(xpixel - ann_out/2))
-			xhii = int(round(xpixel + ann_in/2))
-			xhio = int(round(xpixel + ann_in/2))
-			ylowi = int(round(ypixel - ann_in/2))
-			ylowo = int(round(ypixel - ann_out/2))
-			yhii = int(round(ypixel + ann_in/2))
-			yhio = int(round(ypixel + ann_in/2))
-			bg_data = []
-			
-			for i in range(xlowo,xlowi+1,1):			
-				for j in range(ylowo,yhio+1,1):
-					bg_data.append(image_data[j,i]) 
-					
-			for i in range(xlowi,xhii+1,1):			
-				for j in range(ylowo,ylowi+1,1):
-					bg_data.append(image_data[j,i])
-					
-			for i in range(xlowi,xhii+1,1):			
-				for j in range(yhii,yhio+1,1):
-					bg_data.append(image_data[j,i])
-					
-			for i in range(xhii,xhio+1,1):			
-				for j in range(ylowo,yhio+1,1):
-					bg_data.append(image_data[j,i])
-					
-			bg_data = np.array(bg_data)
-			ann_area = len(bg_data)
-			source_ap = CircularAperture((position),r=0.5*apermul*fwhm)
-			tot_source_bg = np.mean(bg_data)*source_ap.area()
-			return tot_source_bg, np.mean(bg_data), np.std(bg_data), ann_area   
+		phot_table = aperture_photometry(image_data,aperture)   
 					  
 		# Set up arrays of ord and exord source parameters
 		s_id = np.zeros([len(np.array(phot_table['id']))])
@@ -219,7 +223,7 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 				
 			if bkg_type == 'GLOBAL':
 				fluxbgs[i] = (phot_table['aperture_sum'][i] -
-							  aperture.area()*glob_bgm[i])
+					aperture.area()*glob_bgm[i])
 				mean_bg[i] = glob_bgm[i]
 				bg_err[i] = glob_bgerr[i]
 				ann_area.append(aperture.area())			
@@ -270,11 +274,13 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		exordresultf.close()
 		
 	return 0
+	
 		
 def main():
 	# Run script from command line
 	directory,bkg_type,apermul = get_args()
 	return fors2_pol_phot(directory,bkg_type,apermul)
+	
 	
 if __name__ == '__main__':
     sys.exit(main())

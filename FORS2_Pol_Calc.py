@@ -6,12 +6,14 @@
 
 __doc__ = """ This script calculates the polarisation measurements for FORS2
 observations. Please make sure the eight input files follow the naming
-convention - angleXXX_ord.txt/angleXXX_exord.txt """
+convention - angleXXX_ord.txt/angleXXX_exord.txt
+"""
 
 import numpy as np
 import os
 import sys
 import argparse
+
 
 def get_args():
 	# Parse command line arguments
@@ -22,34 +24,13 @@ def get_args():
 	args = parser.parse_args()
 	directory = args.__dict__['Directory']
 	return directory
+	
 
 def fors2_pol(directory):
-	""" Calculates polarisation measurments from FORS1 observations """
+	# Calculates polarisation measurments from FORS1 observations.
+	# Functions are presented first followed by the running script.
+
 	
-	# Read in files
-	folder_path = directory
-	file_name_ord0 = 'angle0_ord.txt'
-	file_name_ord22 = 'angle225_ord.txt'
-	file_name_ord45 = 'angle45_ord.txt'
-	file_name_ord67 = 'angle675_ord.txt'
-	file_name_ext0 = 'angle0_exord.txt'
-	file_name_ext22 = 'angle225_exord.txt'
-	file_name_ext45 = 'angle45_exord.txt'
-	file_name_ext67 = 'angle675_exord.txt'
-
-	ordin_0 = os.path.join(folder_path,file_name_ord0)
-	ordin_22 = os.path.join(folder_path,file_name_ord22)
-	ordin_45 = os.path.join(folder_path,file_name_ord45)
-	ordin_67 = os.path.join(folder_path,file_name_ord67)
-	extra_0 = os.path.join(folder_path,file_name_ext0)
-	extra_22 = os.path.join(folder_path,file_name_ext22)
-	extra_45 = os.path.join(folder_path,file_name_ext45)
-	extra_67 = os.path.join(folder_path,file_name_ext67)
-
-	# Defines two lists of ordinary and extra ordinary files to extract data
-	ordinary_beam = [ordin_0,ordin_22,ordin_45,ordin_67]
-	extra_beam = [extra_0,extra_22,extra_45,extra_67]
-
 	def beam_data(beam_angle):
 		# Extracts data for all targets per angle of selected beam	
 		total_data = {}
@@ -75,6 +56,7 @@ def fors2_pol(directory):
 		f.close()
 		return total_data
 
+	
 	def target_list(data_list):
 		# Creates a target list with main target and relevant
 		# number of field stars
@@ -86,33 +68,9 @@ def fors2_pol(directory):
 
 		return target_list
 
-	# Raise Error if files or folder cannot be
-	try:
-		ordin_data_0 = beam_data(ordinary_beam[0])
-		ordin_data_22 = beam_data(ordinary_beam[1])
-		ordin_data_45 = beam_data(ordinary_beam[2])
-		ordin_data_67 = beam_data(ordinary_beam[3])
-		extra_data_0 = beam_data(extra_beam[0])
-		extra_data_22 = beam_data(extra_beam[1])
-		extra_data_45 = beam_data(extra_beam[2])
-		extra_data_67 = beam_data(extra_beam[3])
-		
-	except FileNotFoundError as e:
-		print('Cannot find the folder or files you are looking for')
-		sys.exit()
-
-	target_list = target_list(ordin_data_0)
-
-	# Ensure all angles in both ordinary and extraordinary beams have the
-	# same number of sources
-	if (len(ordin_data_0) or len(ordin_data_22) or len(ordin_data_45) or 
-	len(ordin_data_67)) != (len(extra_data_0) != len(extra_data_22) or 
-	len(extra_data_45) or len(extra_data_67)):
-		print('One or more data files have unequal numbers of sources!')
-		sys.exit()
-
+	
 	def flux_error(beam_info,target_list):
-		# Calculates the flux uncertainty for each source per angle of each beam	
+		# Calculates the flux uncertainty for each source per angle per beam
 		flux_error = []
 		gain = 1.25
 		k = 1
@@ -133,54 +91,39 @@ def fors2_pol(directory):
 
 		return flux_error
 
-	# Flux errors stored in following arrays
-	ordin_fluxerr_0 = flux_error(ordin_data_0,target_list)
-	ordin_fluxerr_22 = flux_error(ordin_data_22,target_list)
-	ordin_fluxerr_45 = flux_error(ordin_data_45,target_list)
-	ordin_fluxerr_67 = flux_error(ordin_data_67,target_list)
-
-	extra_fluxerr_0 = flux_error(extra_data_0,target_list)
-	extra_fluxerr_22 = flux_error(extra_data_22,target_list)
-	extra_fluxerr_45 = flux_error(extra_data_45,target_list)
-	extra_fluxerr_67 = flux_error(extra_data_67,target_list)
-
-	def norm_flux(ordin_beam,extra_beam,ordin_fluxerr,extra_fluxerr,target_list):
+	
+	def norm_flux(ordin_beam,extra_beam,ordin_fluxerr,extra_fluxerr,
+		target_list):
 		# Calculates the normalised flux per angle for each beam and the error
 		# on the flux
 		norm_flux_value = []
 		norm_flux_err = []
 		
 		for i in range(0,len(target_list),1):		
-			nf1 = ordin_beam[target_list[i]]['flux']-extra_beam[target_list[i]]['flux']
-			nf2 = ordin_beam[target_list[i]]['flux']+extra_beam[target_list[i]]['flux']
+			nf1 = (ordin_beam[target_list[i]]['flux']-
+				extra_beam[target_list[i]]['flux'])
+			nf2 = (ordin_beam[target_list[i]]['flux']+
+				extra_beam[target_list[i]]['flux'])
 			norm_flux = nf1/nf2
 			norm_flux_value.append(norm_flux)
 			a = np.sqrt((ordin_fluxerr[i]**2)+(extra_fluxerr[i]**2))
-			b = ordin_beam[target_list[i]]['flux']-extra_beam[target_list[i]]['flux']
-			c = ordin_beam[target_list[i]]['flux']+extra_beam[target_list[i]]['flux']
+			b = (ordin_beam[target_list[i]]['flux']-
+				extra_beam[target_list[i]]['flux'])
+			c = (ordin_beam[target_list[i]]['flux']+
+				extra_beam[target_list[i]]['flux'])
 			norm_flux_e = norm_flux*np.sqrt(((a/b)**2)+((a/c)**2))
 			norm_flux_err.append(norm_flux_e)
 
 		return(norm_flux_value,norm_flux_err)
 
-	# Normalised flux values and errors stored in following arrays
-	norm_flux_0,norm_flux_err_0 = norm_flux(ordin_data_0,extra_data_0,
-		ordin_fluxerr_0,extra_fluxerr_0,target_list)
-	norm_flux_22,norm_flux_err_22 = norm_flux(ordin_data_22,extra_data_22,
-		ordin_fluxerr_22,extra_fluxerr_22,target_list)
-	norm_flux_45,norm_flux_err_45 = norm_flux(ordin_data_45,extra_data_45,
-		ordin_fluxerr_45,extra_fluxerr_45,target_list)
-	norm_flux_67,norm_flux_err_67 = norm_flux(ordin_data_67,extra_data_67,
-		ordin_fluxerr_67,extra_fluxerr_67,target_list)
-
-	# Coversion factor from degrees to radians
-	dtr = np.pi/180
-
-	def pol_param(norm_flux_0,norm_flux_22,norm_flux_45,norm_flux_67,target_list):
+	
+	def pol_param(norm_flux_0,norm_flux_22,norm_flux_45,norm_flux_67,
+		target_list):
 		# Calculates the measured Q, U, and P values of the objects
 		q_values = []
 		u_values = []
 		p_values = []
+		dtr = np.pi/180
 
 		for i in range(0,len(target_list),1):	
 			q = ((0.5*norm_flux_0[i]*np.cos(4*0*dtr))+(0.5*norm_flux_22[i]*
@@ -195,20 +138,19 @@ def fors2_pol(directory):
 			p_values.append(p)
 			
 		return(q_values,u_values,p_values)
-
-	# Q, U, and P values in following arrays
-	q_values,u_values,p_values = pol_param(norm_flux_0,norm_flux_22,norm_flux_45,
-		norm_flux_67,target_list)
-		
+			
+	
 	def calc_theta(u,q):
 		# Calculates theta for all objects
 		theta_values = []
+		dtr = np.pi/180
 
 		for i in range(0,len(target_list),1):		
 			theta = 0.5*np.arctan(u[i]/q[i])*(1/dtr)
 			theta_values.append(theta)
 			
 		return theta_values
+		
 
 	def position_angle(theta_values,q,u,target_list):
 		# Calculate proper position angles
@@ -226,22 +168,19 @@ def fors2_pol(directory):
 				corr_theta_values.append(theta_values[i]+180)
 
 		return corr_theta_values
-
-	# Theta value arrays
-	theta_values = calc_theta(u_values,q_values)
-	corr_theta_values = position_angle(theta_values,q_values,u_values,target_list)
+		
 
 	def parameter_errors(norm_flux_err_0,norm_flux_err_22,norm_flux_err_45,
-	norm_flux_err_67,p_values,ordin_data_0,extra_data_0,ordin_data_22,
-	extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
-	target_list):
-		# Calculate errors on Q, U, P, Theta and SD of the average flux per angle
-
+		norm_flux_err_67,p_values,ordin_data_0,extra_data_0,ordin_data_22,
+		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
+		target_list):
+		# Calculate errors on Q, U, P, Theta, SD of the average flux per angle
 		q_errors = []
 		u_errors = []
 		sig_p = []
 		flux_sig = []
 		theta_errors = []
+		dtr = np.pi/180
 
 		for i in range(0,len(target_list),1):		
 			q_errors.append(np.sqrt(((0.5*norm_flux_err_0[i]*np.cos(0*dtr))**2)+
@@ -268,24 +207,16 @@ def fors2_pol(directory):
 		for k in range(0,len(target_list),1):
 			theta_errors.append(sig_p[k]/(2*p_values[k]*dtr))
 
-		return(q_errors,u_errors,sig_p,flux_sig,theta_errors)   
+		return(q_errors,u_errors,sig_p,flux_sig,theta_errors)  
 		
-	# Store Q, U and P, Theta and simplified P error values
-	data_array = parameter_errors(norm_flux_err_0,norm_flux_err_22,
-		norm_flux_err_45,norm_flux_err_67,p_values,ordin_data_0,
-		extra_data_0,ordin_data_22,extra_data_22,ordin_data_45,
-		extra_data_45,ordin_data_67,extra_data_67,target_list)
-				 
-	q_errors,u_errors,sig_p,flux_sig,theta_errors = data_array
 
 	def estimated_polarisation(ordin_data_0,extra_data_0,ordin_data_22,
-	extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
-	ordin_fluxerr_0,ordin_fluxerr_22,ordin_fluxerr_45,ordin_fluxerr_67,
-	extra_fluxerr_0,extra_fluxerr_22,extra_fluxerr_45,extra_fluxerr_67,
-	p_values,sig_p,target_list):
+		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
+		ordin_fluxerr_0,ordin_fluxerr_22,ordin_fluxerr_45,ordin_fluxerr_67,
+		extra_fluxerr_0,extra_fluxerr_22,extra_fluxerr_45,extra_fluxerr_67,
+		p_values,sig_p,target_list):
 		# Calculate etap (rough estimate of flux snr) and then use MAS
-		# estimator from Plaszczynski et al. 2015 to correct for bias
-		
+		# estimator from Plaszczynski et al. 2015 to correct for bias		
 		snr_f0 = []
 		snr_f22 = []
 		snr_f45 = []
@@ -320,7 +251,97 @@ def fors2_pol(directory):
 						   
 		return(eta,p_corr)
 
-	# Eta, estimator name and corrected P values stored
+		
+	# Begin by reading in files
+	folder_path = directory
+	file_name_ord0 = 'angle0_ord.txt'
+	file_name_ord22 = 'angle225_ord.txt'
+	file_name_ord45 = 'angle45_ord.txt'
+	file_name_ord67 = 'angle675_ord.txt'
+	file_name_ext0 = 'angle0_exord.txt'
+	file_name_ext22 = 'angle225_exord.txt'
+	file_name_ext45 = 'angle45_exord.txt'
+	file_name_ext67 = 'angle675_exord.txt'
+
+	ordin_0 = os.path.join(folder_path,file_name_ord0)
+	ordin_22 = os.path.join(folder_path,file_name_ord22)
+	ordin_45 = os.path.join(folder_path,file_name_ord45)
+	ordin_67 = os.path.join(folder_path,file_name_ord67)
+	extra_0 = os.path.join(folder_path,file_name_ext0)
+	extra_22 = os.path.join(folder_path,file_name_ext22)
+	extra_45 = os.path.join(folder_path,file_name_ext45)
+	extra_67 = os.path.join(folder_path,file_name_ext67)
+
+	# Defines two lists of ordinary and extra ordinary files to extract data
+	ordinary_beam = [ordin_0,ordin_22,ordin_45,ordin_67]
+	extra_beam = [extra_0,extra_22,extra_45,extra_67]
+	
+	# Raise Error if files or folder cannot be found
+	try:
+		ordin_data_0 = beam_data(ordinary_beam[0])
+		ordin_data_22 = beam_data(ordinary_beam[1])
+		ordin_data_45 = beam_data(ordinary_beam[2])
+		ordin_data_67 = beam_data(ordinary_beam[3])
+		extra_data_0 = beam_data(extra_beam[0])
+		extra_data_22 = beam_data(extra_beam[1])
+		extra_data_45 = beam_data(extra_beam[2])
+		extra_data_67 = beam_data(extra_beam[3])
+		
+	except FileNotFoundError as e:
+		print('Cannot find the folder or files you are looking for')
+		sys.exit()
+
+	# Creates target list of sources
+	target_list = target_list(ordin_data_0)
+
+	# Ensure all angles in both ordinary and extraordinary beams have the
+	# same number of sources
+	if (len(ordin_data_0) or len(ordin_data_22) or len(ordin_data_45) or 
+		len(ordin_data_67)) != (len(extra_data_0) != len(extra_data_22) or 
+		len(extra_data_45) or len(extra_data_67)):
+		
+		print('One or more data files have unequal numbers of sources!')
+		sys.exit()
+		
+	# Calculate and store flux errors
+	ordin_fluxerr_0 = flux_error(ordin_data_0,target_list)
+	ordin_fluxerr_22 = flux_error(ordin_data_22,target_list)
+	ordin_fluxerr_45 = flux_error(ordin_data_45,target_list)
+	ordin_fluxerr_67 = flux_error(ordin_data_67,target_list)
+
+	extra_fluxerr_0 = flux_error(extra_data_0,target_list)
+	extra_fluxerr_22 = flux_error(extra_data_22,target_list)
+	extra_fluxerr_45 = flux_error(extra_data_45,target_list)
+	extra_fluxerr_67 = flux_error(extra_data_67,target_list)
+	
+	# Calculate and store normalised flux values and errors
+	norm_flux_0,norm_flux_err_0 = norm_flux(ordin_data_0,extra_data_0,
+		ordin_fluxerr_0,extra_fluxerr_0,target_list)
+	norm_flux_22,norm_flux_err_22 = norm_flux(ordin_data_22,extra_data_22,
+		ordin_fluxerr_22,extra_fluxerr_22,target_list)
+	norm_flux_45,norm_flux_err_45 = norm_flux(ordin_data_45,extra_data_45,
+		ordin_fluxerr_45,extra_fluxerr_45,target_list)
+	norm_flux_67,norm_flux_err_67 = norm_flux(ordin_data_67,extra_data_67,
+		ordin_fluxerr_67,extra_fluxerr_67,target_list)
+		
+	# Calculate and store Q, U, and P values
+	q_values,u_values,p_values = pol_param(norm_flux_0,norm_flux_22,
+		norm_flux_45,norm_flux_67,target_list)
+		
+	# Calculate and store theta values
+	theta_values = calc_theta(u_values,q_values)
+	corr_theta_values = position_angle(theta_values,q_values,u_values,
+		target_list)
+	
+	# Calculate errors on Q, U and P, theta and flux P
+	data_array = parameter_errors(norm_flux_err_0,norm_flux_err_22,
+		norm_flux_err_45,norm_flux_err_67,p_values,ordin_data_0,
+		extra_data_0,ordin_data_22,extra_data_22,ordin_data_45,
+		extra_data_45,ordin_data_67,extra_data_67,target_list)
+				 
+	q_errors,u_errors,sig_p,flux_sig,theta_errors = data_array
+
+	# Calculate eta and corrected P values
 	pol_values = estimated_polarisation(ordin_data_0,extra_data_0,ordin_data_22,
 		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,
 		extra_data_67,ordin_fluxerr_0,ordin_fluxerr_22,ordin_fluxerr_45,
@@ -394,11 +415,13 @@ def fors2_pol(directory):
 	sys.stdout = orig_stdout
 	resultf.close()
 	return 0
+	
 
 def main():
 	# Run Script
 	directory = get_args()
 	return fors2_pol(directory)
+	
 	
 if __name__ == '__main__':
     sys.exit(main())

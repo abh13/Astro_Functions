@@ -9,7 +9,8 @@ image fits file. This is accomplished by comparing field star observed
 magnitudes against measured catalogue values and determines the offset. The
 script currently uses the APASS, SDSS PanSTARRs and Skymapper catalogues. It
 can calibrate images in the Johnson-Cousins filters (B,V,R) and SDSS
-filters (u,g,r,i,z)."""
+filters (u,g,r,i,z).
+"""
 
 __version__ = '1.5'
 
@@ -26,6 +27,7 @@ import numpy as np
 import os
 import sys
 import requests
+
 
 def get_args():
 	### Parse Arguments
@@ -65,9 +67,10 @@ def get_args():
 		sys.exit()
 		
 	return directory,gain,searchrad,waveband,im_file,sigma,aperture
+	
 
 def im_phot(directory,gain,im_file,aperture):
-	""" Perform photometry on the image """
+	# Perform photometry on the image
 
 	### Read in fits image file and create array with wcs coordinates
 	os.chdir(directory)
@@ -128,13 +131,13 @@ def im_phot(directory,gain,im_file,aperture):
 		out.set_edgecolor('red')
 		ax.add_artist(out)
 
-	plt.savefig(directory+'detections.png')
-	
+	plt.savefig(directory+'detections.png')	
 	return targetra,targetdec,sepmag,sepmagerr,ra,dec,xpixel,ypixel
 
+
 def apass_search(searchrad,waveband,targetra,targetdec):
-	""" Search for all stars within search radius of target in APASS
-	catalogue """
+	# Search for all stars within search radius of target in APASS
+	# catalogue
 	
 	# Set up url and arrays
 	sr_deg = float(searchrad*0.0166667)
@@ -212,13 +215,13 @@ def apass_search(searchrad,waveband,targetra,targetdec):
 		print('')
 	
 	# Create list with catalogue name
-	star_cat = ['APASS'] * len(star_ra)
-	
+	star_cat = ['APASS'] * len(star_ra)	
 	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
+
 def sdss_search(searchrad,waveband,targetra,targetdec):	
-	""" Search for all stars within search radius of target in SDSS
-	catalogue """
+	# Search for all stars within search radius of target in SDSS
+	# catalogue
 	
 	# set up url, arrays and number of returned results
 	star_ra = []
@@ -304,13 +307,13 @@ def sdss_search(searchrad,waveband,targetra,targetdec):
 		print('')
 
 	# Create list with catalogue name
-	star_cat = ['SDSS'] * len(star_ra)
-	
+	star_cat = ['SDSS'] * len(star_ra)	
 	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
+
 def panstarrs_search(searchrad,waveband,targetra,targetdec):	
-	""" Search for all stars within search radius of target in PanSTARRs
-	catalogue """
+	# Search for all stars within search radius of target in PanSTARRs
+	# catalogue
 	
 	# Set up arrays and url
 	star_ra = []
@@ -495,13 +498,13 @@ def panstarrs_search(searchrad,waveband,targetra,targetdec):
 					star_magerr.append(zmagerr_aper[i])
 					
 	# Create list with catalogue name
-	star_cat = ['PanSTARRs'] * len(star_ra)
-	
+	star_cat = ['PanSTARRs'] * len(star_ra)	
 	return star_ra,star_dec,star_mag,star_magerr,star_cat
 
+
 def skymapper_search(searchrad,waveband,targetra,targetdec):	
-	""" Search for all stars within search radius of target in Skymapper
-	catalogue """	
+	# Search for all stars within search radius of target in Skymapper
+	# catalogue	
 	
 	# set up arrays and url
 	star_ra = []
@@ -673,73 +676,17 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 					star_dec.append(float(sky_dec[i]))
 	
 	# Create list with catalogue name
-	star_cat = ['SkyMapper'] * len(star_ra)
-	
+	star_cat = ['SkyMapper'] * len(star_ra)	
 	return star_ra,star_dec,star_mag,star_magerr,star_cat
+
 
 def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 	ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
-	""" Calibrate magnitude offset using field stars """
+	# Calibrate magnitude offset using field stars
 	
-	### For catalogue star mags with given error as 0, change this to 0.1 mag
-	star_magerr = [0.1 if (x == 0.0 or x == -0.0) else x for x in star_magerr]
-
-	### Crossmatch SExtractor detections output with nearby known stars
-	### for calibration and print to file
-	cm_error_region = 1
-	detect_ra = []
-	detect_dec = []
-	real_mag = []
-	real_mage = []
-	fake_mag = []
-	fake_mage = []
-
-	orig_stdout = sys.stdout
-	resultf = open('cm_results.txt', "w")
-	sys.stdout = resultf
-	print('# DetRA, ','DetDec, ','CatRA, ','CatDec, ','MagCat, ','MagCatErr,',
-		'MagIn, ','MagInErr, ','Catalogue')
 	
-	for i in range(len(sepmag)):	
-		targetra_diff = (ra[i] - targetra)/0.000277778
-		targetdec_diff = (dec[i] - targetdec)/0.000277778
-		targetdiff = (targetra_diff**2 + targetdec_diff**2)**0.5
-		
-		if targetdiff > 5:
-		
-			for j in range(len(star_ra)):			
-				ra_diff = (ra[i] - star_ra[j])/0.000277778
-				dec_diff = (dec[i] - star_dec[j])/0.000277778
-				dist = (ra_diff**2 + dec_diff**2)**0.5
-				
-				if dist <= cm_error_region:
-				
-					if (ra[i] in detect_ra and dec[i] in detect_dec):
-						continue
-						
-					else:
-						detect_ra.append(ra[i])
-						detect_dec.append(dec[i])
-						real_mag.append(star_mag[j])
-						real_mage.append(star_magerr[j])
-						fake_mag.append(sepmag[i])
-						fake_mage.append(sepmagerr[i])
-						print(round(ra[i],5),',',round(dec[i],5),',',
-							round(star_ra[j],5),',',round(star_dec[j],5),',',
-							round(star_mag[j],5),',',round(star_magerr[j],5),
-							',',round(sepmag[i],5),',',round(sepmagerr[i],5),
-							',',star_cat[j])
-
-	sys.stdout = orig_stdout
-	resultf.close()
-
-	### Exit Programme if too few field stars to calibrate offset
-	if len(real_mag) < 3:
-		print('Not enough field stars to calibrate offset')
-		sys.exit()
-
 	def calib_plot(xdata,ydata,xerrors,yerrors,sigma,figname):    
-		""" Find calibration offset """
+		# Find calibration offset
 		
 		# Set up figure
 		fig = plt.figure()
@@ -801,19 +748,13 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 			ax2.plot(xx,ymodlow2c,color='blue',linestyle='--')
 
 		plt.setp(ax1.get_xticklabels(), visible=False)
-		plt.savefig(directory+figname)
-		
+		plt.savefig(directory+figname)		
 		return param, paramerr
 		
-	### Plot raw data and set up clipping tool
-	plot = calib_plot(fake_mag,real_mag,fake_mage,real_mage,sigma,'calib.png')
-	param = plot[0]
-	paramerr = plot[1]
-	print('Magnitude Offset (no clipping) =',param,'+-',paramerr)
-
+	
 	def clipp(xdata,ydata,xerrors,yerrors,param,paramerr,sigma):
-		""" Clips any data that is X-sigma or further away from the best
-		fitting line """
+		# Clips any data that is X-sigma or further away from the best
+		# fitting line
 		
 		xdatac = []
 		xerrorc = []
@@ -835,6 +776,70 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 				continue
 				
 		return xdatac, xerrorc, ydatac, yerrorc
+	
+
+	### For catalogue star mags with given error as 0, change this to 0.1 mag
+	star_magerr = [0.1 if (x == 0.0 or x == -0.0) else x for x in star_magerr]
+
+	### Crossmatch SExtractor detections output with nearby known stars
+	### for calibration and print to file
+	cm_error_region = 1
+	detect_ra = []
+	detect_dec = []
+	real_mag = []
+	real_mage = []
+	fake_mag = []
+	fake_mage = []
+
+	orig_stdout = sys.stdout
+	resultf = open('cm_results.txt', "w")
+	sys.stdout = resultf
+	print('# DetRA, ','DetDec, ','CatRA, ','CatDec, ','MagCat, ','MagCatErr,',
+		'MagIn, ','MagInErr, ','Catalogue')
+	
+	for i in range(len(sepmag)):	
+		targetra_diff = (ra[i] - targetra)/0.000277778
+		targetdec_diff = (dec[i] - targetdec)/0.000277778
+		targetdiff = (targetra_diff**2 + targetdec_diff**2)**0.5
+		
+		if targetdiff > 5:
+		
+			for j in range(len(star_ra)):			
+				ra_diff = (ra[i] - star_ra[j])/0.000277778
+				dec_diff = (dec[i] - star_dec[j])/0.000277778
+				dist = (ra_diff**2 + dec_diff**2)**0.5
+				
+				if dist <= cm_error_region:
+				
+					if (ra[i] in detect_ra and dec[i] in detect_dec):
+						continue
+						
+					else:
+						detect_ra.append(ra[i])
+						detect_dec.append(dec[i])
+						real_mag.append(star_mag[j])
+						real_mage.append(star_magerr[j])
+						fake_mag.append(sepmag[i])
+						fake_mage.append(sepmagerr[i])
+						print(round(ra[i],5),',',round(dec[i],5),',',
+							round(star_ra[j],5),',',round(star_dec[j],5),',',
+							round(star_mag[j],5),',',round(star_magerr[j],5),
+							',',round(sepmag[i],5),',',round(sepmagerr[i],5),
+							',',star_cat[j])
+
+	sys.stdout = orig_stdout
+	resultf.close()
+
+	### Exit Programme if too few field stars to calibrate offset
+	if len(real_mag) < 3:
+		print('Not enough field stars to calibrate offset')
+		sys.exit()
+		
+	### Plot raw data and set up clipping tool
+	plot = calib_plot(fake_mag,real_mag,fake_mage,real_mage,sigma,'calib.png')
+	param = plot[0]
+	paramerr = plot[1]
+	print('Magnitude Offset (no clipping) =',param,'+-',paramerr)
 		
 	### Plot clipped data and print offsets
 	one = clipp(fake_mag,real_mag,fake_mage,real_mage,param,paramerr,sigma) 
@@ -874,10 +879,9 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 	plt.close('all')
 	return 0
 	
-def main():
-	""" Run the script if used from command line """
 	
-	# Get command line arguments
+def main():
+	# Run the script if used from command line
 	directory,gain,searchrad,waveband,im_file,sigma,aperture = get_args()
 	
 	# Perform photometry on image
@@ -903,6 +907,7 @@ def main():
 	
 	return mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel)
+		
 
 if __name__ == '__main__':
     sys.exit(main())

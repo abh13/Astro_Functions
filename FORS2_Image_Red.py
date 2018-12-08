@@ -17,7 +17,8 @@ affect the clipping.
 
 NOTE: The script only reduces using imaging flats - this is usually fine
 as FORS2 doesn't rotate the wavelplate for flats taken with polarisation
-optics in the beam """
+optics in the beam 
+"""
 
 import numpy as np
 from astropy.io import fits
@@ -27,17 +28,16 @@ import glob
 import sys
 import argparse
 
+
 def get_args():
-	""" Parse command line arguments """
-	
-	# Main parser for task input
+	# Parse command line arguments
 	parser = argparse.ArgumentParser(description=__doc__)
+	parser.add_argument("Directory",metavar="DIR",type=str,action='store',
+		help="Required directory")
 	parser.add_argument("Task",metavar="TASK",type=str,action="store",
 		help="Required task - BIAS/FLAT/RED")
 	parser.add_argument("Files",nargs='*',help="Parse up to three file names\
 		dependent on task - one each for MBIAS/MFLAT/RAWIMAGE")
-	parser.add_argument("--d",type=str,default=os.getcwd(),dest="directory",
-		help="Desired directory (default = current directory)")
 	parser.add_argument("--ft",type=str,default='IMSKY',dest="flattype",
 		help="Flat type - IMSKY/IMDOME (default = IMSKY)")
 	
@@ -45,27 +45,28 @@ def get_args():
 	args = parser.parse_args()
 	task = args.__dict__['Task']
 	files = args.__dict__['Files']
-	directory = args.directory
+	directory = args.__dict__['Directory']
 	flattype = args.flattype
 	
 	if len(files) == 1 and task == 'BIAS':
 		masterb = files[0]
-		return task,directory,flattype,masterb
+		return directory,task,flattype,masterb
 		
 	if len(files) == 2 and task == 'FLAT':
 		masterb, masterf = files
-		return task,directory,flattype,masterb,masterf
+		return directory,task,flattype,masterb,masterf
 		
 	if len(files) == 3 and task == 'RED':
 		masterb, masterf, imfile = files	
-		return task,directory,flattype,masterb,masterf,imfile
+		return directory,task,flattype,masterb,masterf,imfile
 		
 	else:
 		print("Error in arguments. Check number of arguments for task!")
 		sys.exit()
+		
 
 def master_bf(masterb):
-	""" Produces a master bias fits file """	
+	# Produces a master bias fits file	
 	bias_fn = []
 	
 	for file in glob.glob('*.fits'):
@@ -87,7 +88,6 @@ def master_bf(masterb):
 		header = hdulist[0].header
 		
 		if np.shape(data) == (1034,2048):
-		#and header['CDELT1'] == 2 and header['CDELT2'] == 2):
 			bstack_data[i,:,:] = data[6:946,180:1865]
 			i += 1
 			
@@ -115,10 +115,11 @@ def master_bf(masterb):
 	else:
 		print("No applicable bias frames!")
 		sys.exit()
+
 	
 def master_ff(flattype,masterb,masterf):
-	""" Produces a master flat that has been bias corrected for
-	a science image """	
+	# Produces a master flat that has been bias corrected for
+	# a science image
 	flat_fn = []
 	
 	for file in glob.glob('*.fits'):
@@ -152,7 +153,6 @@ def master_ff(flattype,masterb,masterf):
 		header = hdulist[0].header
 		
 		if np.shape(data) == (1034,2048):
-		# and header['CDELT1'] == 2 and header['CDELT1'] == 2):
 			bc_data = data[6:946,180:1865] - mbdata
 			clipped_data = sigma_clip(bc_data,sigma_upper=3,sigma_lower=104)
 			bc_data[clipped_data.mask == True] = np.nan
@@ -194,9 +194,10 @@ def master_ff(flattype,masterb,masterf):
 		print("No applicable flat frames")
 		sys.exit()
 		
+		
 def reduce_file(masterb,masterf,imfile):
-	""" Reduces the raw science image subtracting the flats and bias frames 
-	created/read in above """
+	# Reduces the raw science image subtracting the flats and bias frames 
+	# created/read in above
 	
 	mblist = fits.open(masterb)
 	mbdata = mblist[0].data
@@ -222,14 +223,15 @@ def reduce_file(masterb,masterf,imfile):
 	else:
 		print("Raw image data is not of initial shape 2048x1034")
 		sys.exit()
+		
 	
 def main():
-	""" Run script from command line """
+	# Run script from command line
 	
 	# Deal with bias frames
 	args = get_args()
-	task = args[0]
-	directory = args[1]
+	directory = args[0]
+	task = args[1]
 	flattype = args[2]
 	masterb = args[3]
 	os.chdir(directory)
@@ -263,6 +265,7 @@ def main():
 			print("Can't find raw image file, please check input")		
 		
 	return 0
+	
 	
 if __name__ == '__main__':
     sys.exit(main())

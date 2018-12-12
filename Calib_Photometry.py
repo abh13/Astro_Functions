@@ -30,7 +30,7 @@ import requests
 
 
 def get_args():
-	### Parse Arguments
+	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument('Image File',metavar='FILE',type=str,action='store',
 		help='Name of the image fits file (xxxx.fits)')
@@ -70,9 +70,9 @@ def get_args():
 	
 
 def im_phot(directory,gain,im_file,aperture):
-	# Perform photometry on the image
+	""" Perform photometry on the image """
 
-	### Read in fits image file and create array with wcs coordinates
+	# Read in fits image file and create array with wcs coordinates
 	os.chdir(directory)
 	hdulist = fits.open(im_file)
 	w = WCS(im_file)
@@ -80,10 +80,10 @@ def im_phot(directory,gain,im_file,aperture):
 	data[np.isnan(data)] = 0
 	hdulist.close()
 
-	### Calculate center point of image (RA, Dec) if not input by user
+	# Calculate center point of image (RA, Dec) if not input by user
 	targetra, targetdec = w.all_pix2world(len(data[:,0])/2,len(data[0,:])/2,0)
 
-	### Use SEP for background subtraction and source detection
+	# Use SEP for background subtraction and source detection
 	datasw = data.byteswap().newbyteorder().astype('float64')
 	bkg = sep.Background(datasw)
 	data_bgs = data - bkg
@@ -94,7 +94,7 @@ def im_phot(directory,gain,im_file,aperture):
 	objects = sep.extract(data_bgs,3,err=bkg.globalrms)
 	objra, objdec = w.all_pix2world(objects['x'],objects['y'],0)
 
-	### Find dummy magnitudes using aperture photometry and plot images
+	# Find dummy magnitudes using aperture photometry and plot images
 	fig, ax = plt.subplots()
 	image = plt.imshow(data_bgs,cmap='gray',vmin=(mean-3*std),
 		vmax=(mean+3*std),origin='lower')
@@ -117,7 +117,7 @@ def im_phot(directory,gain,im_file,aperture):
 		magerr2 = np.abs(mag-maglimit2)
 		magerr = (magerr1+magerr2)/2
 		
-		## Save object properties to arrays
+		# Save object properties to arrays
 		sepmag.append(mag)
 		sepmagerr.append(magerr)
 		ra.append(objra[i])
@@ -125,7 +125,7 @@ def im_phot(directory,gain,im_file,aperture):
 		xpixel.append(objects['x'][i])
 		ypixel.append(objects['y'][i])
 		
-		## Plot the detections on the image
+		# Plot the detections on the image
 		out = Circle(xy=(objects['x'][i],objects['y'][i]),radius=aperture)
 		out.set_facecolor('none')
 		out.set_edgecolor('red')
@@ -136,8 +136,7 @@ def im_phot(directory,gain,im_file,aperture):
 
 
 def apass_search(searchrad,waveband,targetra,targetdec):
-	# Search for all stars within search radius of target in APASS
-	# catalogue
+	""" Search stars within search radius of target in APASS catalogue """
 	
 	# Set up url and arrays
 	sr_deg = float(searchrad*0.0166667)
@@ -220,8 +219,7 @@ def apass_search(searchrad,waveband,targetra,targetdec):
 
 
 def sdss_search(searchrad,waveband,targetra,targetdec):	
-	# Search for all stars within search radius of target in SDSS
-	# catalogue
+	""" Search for stars within search radius of target in SDSS catalogue """
 	
 	# set up url, arrays and number of returned results
 	star_ra = []
@@ -312,8 +310,9 @@ def sdss_search(searchrad,waveband,targetra,targetdec):
 
 
 def panstarrs_search(searchrad,waveband,targetra,targetdec):	
-	# Search for all stars within search radius of target in PanSTARRs
-	# catalogue
+	""" Search for stars within search radius of target in PanSTARRs
+	catalogue
+	"""
 	
 	# Set up arrays and url
 	star_ra = []
@@ -503,8 +502,9 @@ def panstarrs_search(searchrad,waveband,targetra,targetdec):
 
 
 def skymapper_search(searchrad,waveband,targetra,targetdec):	
-	# Search for all stars within search radius of target in Skymapper
-	# catalogue	
+	""" Search for stars within search radius of target in Skymapper
+	catalogue
+	"""
 	
 	# set up arrays and url
 	star_ra = []
@@ -682,7 +682,7 @@ def skymapper_search(searchrad,waveband,targetra,targetdec):
 
 def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 	ra,dec,sepmag,sepmagerr,targetra,targetdec,sigma,xpixel,ypixel):	
-	# Calibrate magnitude offset using field stars
+	""" Calibrate the magnitude offset for sources using field stars """
 	
 	
 	def calib_plot(xdata,ydata,xerrors,yerrors,sigma,figname):    
@@ -696,7 +696,7 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		ax1.invert_yaxis()
 		ax1.errorbar(x=xdata,y=ydata,xerr=xerrors,yerr=yerrors,fmt='.')
 
-		### Just fitting a straight line for offset
+		# Just fitting a straight line for offset
 		def line1(x,c):
 			return x + c
 
@@ -706,8 +706,8 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		param, pcov = curve_fit(line1, xdata, ydata, sigma=yerrors)
 		paramerr = np.sqrt(np.diag(pcov))
 
-		### Plot real mag vs instrumental mag, 1-sigma errors and clipped data
-		### boundaries (when appropriate)
+		# Plot real mag vs instrumental mag, 1-sigma errors and clipped data
+		# boundaries (when appropriate)
 		xx = np.linspace(min(xdata),max(xdata),1000)
 		ymod1 = line1(xx,param)
 		ymodhighl = line1(xx,param+paramerr)
@@ -722,7 +722,7 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 			ax1.plot(xx,ymodhigh1c,color='blue',linestyle='--')
 			ax1.plot(xx,ymodlow1c,color='blue',linestyle='--')
 
-		### Plot delta mag (offset) vs instrumental mag
+		# Plot delta mag (offset) vs instrumental mag
 		delta = []
 		deltaerrors = []
 		
@@ -778,11 +778,11 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		return xdatac, xerrorc, ydatac, yerrorc
 	
 
-	### For catalogue star mags with given error as 0, change this to 0.1 mag
+	# For catalogue star mags with given error as 0, change this to 0.1 mag
 	star_magerr = [0.1 if (x == 0.0 or x == -0.0) else x for x in star_magerr]
 
-	### Crossmatch SExtractor detections output with nearby known stars
-	### for calibration and print to file
+	# Crossmatch SExtractor detections output with nearby known stars
+	# for calibration and print to file
 	cm_error_region = 1
 	detect_ra = []
 	detect_dec = []
@@ -830,18 +830,18 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 	sys.stdout = orig_stdout
 	resultf.close()
 
-	### Exit Programme if too few field stars to calibrate offset
+	# Exit Programme if too few field stars to calibrate offset
 	if len(real_mag) < 3:
 		print('Not enough field stars to calibrate offset')
 		sys.exit()
 		
-	### Plot raw data and set up clipping tool
+	# Plot raw data and set up clipping tool
 	plot = calib_plot(fake_mag,real_mag,fake_mage,real_mage,sigma,'calib.png')
 	param = plot[0]
 	paramerr = plot[1]
 	print('Magnitude Offset (no clipping) =',param,'+-',paramerr)
 		
-	### Plot clipped data and print offsets
+	# Plot clipped data and print offsets
 	one = clipp(fake_mag,real_mag,fake_mage,real_mage,param,paramerr,sigma) 
 	fake_magc = one[0]
 	fake_magec = one[1]
@@ -862,7 +862,7 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		magerr_f = np.sqrt(np.array(sepmagerr)**2+paramerrc**2)
 		print('Magnitude Offset (clipped) =',paramc,'+-',paramerrc)
 	
-	### Print calibrated source results to text file
+	# Print calibrated source results to text file
 	orig_stdout = sys.stdout
 	resultf = open('calibrated_sources.txt', "w")
 	sys.stdout = resultf
@@ -875,13 +875,13 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 	sys.stdout = orig_stdout
 	resultf.close()
 
-	### Close matplotlib windows
+	# Close matplotlib windows
 	plt.close('all')
 	return 0
 	
 	
 def main():
-	# Run the script if used from command line
+	""" Run the script if used from command line """
 	directory,gain,searchrad,waveband,im_file,sigma,aperture = get_args()
 	
 	# Perform photometry on image

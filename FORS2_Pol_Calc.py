@@ -16,7 +16,7 @@ import argparse
 
 
 def get_args():
-	# Parse command line arguments
+	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
 		help="Required directory")
@@ -27,8 +27,9 @@ def get_args():
 	
 
 def fors2_pol(directory):
-	# Calculates polarisation measurments from FORS1 observations.
-	# Functions are presented first followed by the running script.
+	""" Calculates polarisation measurments from FORS1 observations.
+	Requires the four angle ord and exord files to be in the directory.
+	"""
 
 	
 	def beam_data(beam_angle):
@@ -418,7 +419,7 @@ def fors2_pol(directory):
 	
 
 def main():
-	# Run Script
+	""" Run Script """
 	directory = get_args()
 	return fors2_pol(directory)
 	

@@ -30,7 +30,7 @@ import argparse
 
 
 def get_args():
-	# Parse command line arguments
+	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("Directory",metavar="DIR",type=str,action='store',
 		help="Required directory")
@@ -66,7 +66,7 @@ def get_args():
 		
 
 def master_bf(masterb):
-	# Produces a master bias fits file	
+	""" Produces a master bias fits file """
 	bias_fn = []
 	
 	for file in glob.glob('*.fits'):
@@ -118,8 +118,7 @@ def master_bf(masterb):
 
 	
 def master_ff(flattype,masterb,masterf):
-	# Produces a master flat that has been bias corrected for
-	# a science image
+	""" Produces a master flat that has been bias corrected """
 	flat_fn = []
 	
 	for file in glob.glob('*.fits'):
@@ -196,8 +195,9 @@ def master_ff(flattype,masterb,masterf):
 		
 		
 def reduce_file(masterb,masterf,imfile):
-	# Reduces the raw science image subtracting the flats and bias frames 
-	# created/read in above
+	""" Reduces the raw science image, subtracting the flats and bias frames
+	either created with this script or existing ones that have been read in.
+	"""
 	
 	mblist = fits.open(masterb)
 	mbdata = mblist[0].data
@@ -226,7 +226,7 @@ def reduce_file(masterb,masterf,imfile):
 		
 	
 def main():
-	# Run script from command line
+	""" Run script from command line """
 	
 	# Deal with bias frames
 	args = get_args()

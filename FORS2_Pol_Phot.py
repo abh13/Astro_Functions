@@ -34,7 +34,7 @@ import argparse
 
 
 def get_args():
-	# Parse command line arguments
+	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
 		help='Required directory')
@@ -53,8 +53,9 @@ def get_args():
 	
 	
 def fors2_pol_phot(directory,bkg_type,apermul):
-	# Perform photometry on the four wave-plate angle images and both beams.
-	# Then save to files (eight in total).
+	""" Perform photometry on the four wave-plate angle images and both beams.
+	The script then saves results to files (eight in total).
+	"""
 	
 	
 	def local_back_stats(position):
@@ -277,7 +278,7 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 	
 		
 def main():
-	# Run script from command line
+	""" Run script from command line """
 	directory,bkg_type,apermul = get_args()
 	return fors2_pol_phot(directory,bkg_type,apermul)
 	

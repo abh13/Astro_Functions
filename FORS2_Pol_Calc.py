@@ -184,14 +184,14 @@ def fors2_pol(directory):
 		dtr = np.pi/180
 
 		for i in range(0,len(target_list),1):		
-			q_errors.append(np.sqrt(((0.5*norm_flux_err_0[i]*np.cos(0*dtr))**2)+
-				((0.5*norm_flux_err_22[i]*np.cos(22.5*dtr))**2)+
-				((0.5*norm_flux_err_45[i]*np.cos(45*dtr))**2)+
-				((0.5*norm_flux_err_67[i]*np.cos(67.5*dtr))**2)))
-			u_errors.append(np.sqrt(((0.5*norm_flux_err_0[i]*np.sin(0*dtr))**2)+
-				((0.5*norm_flux_err_22[i]*np.sin(22.5*dtr))**2)+
-				((0.5*norm_flux_err_45[i]*np.sin(45*dtr))**2)+
-				((0.5*norm_flux_err_67[i]*np.sin(67.5*dtr))**2)))
+			q_errors.append(np.sqrt(((0.5*norm_flux_err_0[i]*np.cos(4*0*dtr))
+				**2)+((0.5*norm_flux_err_22[i]*np.cos(4*22.5*dtr))**2)+
+				((0.5*norm_flux_err_45[i]*np.cos(4*45*dtr))**2)+
+				((0.5*norm_flux_err_67[i]*np.cos(4*67.5*dtr))**2)))
+			u_errors.append(np.sqrt(((0.5*norm_flux_err_0[i]*np.sin(4*0*dtr))
+				**2)+((0.5*norm_flux_err_22[i]*np.sin(4*22.5*dtr))**2)+
+				((0.5*norm_flux_err_45[i]*np.sin(4*45*dtr))**2)+
+				((0.5*norm_flux_err_67[i]*np.sin(4*67.5*dtr))**2)))
 			flux_sig.append(1/(np.sqrt((ordin_data_0[target_list[i]]['flux']+
 				extra_data_0[target_list[i]]['flux']+
 				ordin_data_22[target_list[i]]['flux']+

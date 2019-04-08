@@ -26,8 +26,8 @@ from photutils import CircularAperture
 from photutils import aperture_photometry
 from photutils import RectangularAnnulus
 from photutils.utils import calc_total_error
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import sys
 import argparse
@@ -37,83 +37,36 @@ def get_args():
 	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
-		help='Required directory')
-	parser.add_argument("Background",metavar="BKG",type=str,action="store",
-		help="Background calculation to use for photometry calibration - \
-		choices are GLOBAL/LOCAL")
-	parser.add_argument("--ap",type=float,default=1.5,dest='aperture',
-		help="Source aperture diameter size X*FWHM (default = 1.5)")
+		help="Required directory")
+	parser.add_argument("--ap",type=float,default=2.0,dest='aperture',
+		help="Source aperture diameter X*FWHM (default = 2.0)")
 		
 	args = parser.parse_args()
-	
-	directory = args.__dict__['Directory']
-	bkg_type = args.__dict__['Background']
+	folder_path = args.__dict__['Directory']
 	apermul = args.aperture
-	return directory,bkg_type,apermul
-	
-	
-def fors2_pol_phot(directory,bkg_type,apermul):
-	""" Perform photometry on the four wave-plate angle images and both beams.
-	The script then saves results to files (eight in total).
-	"""
-	
-	
-	def local_back_stats(position):
-		# Create custom rectangular background annulus for estimation of
-		# local background if selected a background type.
-		
-		xpixel, ypixel = position
-		xlowi = int(round(xpixel - ann_in/2))
-		xlowo = int(round(xpixel - ann_out/2))
-		xhii = int(round(xpixel + ann_in/2))
-		xhio = int(round(xpixel + ann_in/2))
-		ylowi = int(round(ypixel - ann_in/2))
-		ylowo = int(round(ypixel - ann_out/2))
-		yhii = int(round(ypixel + ann_in/2))
-		yhio = int(round(ypixel + ann_in/2))
-		bg_data = []
-		
-		for i in range(xlowo,xlowi+1,1):			
-			for j in range(ylowo,yhio+1,1):
-				bg_data.append(image_data[j,i]) 
-				
-		for i in range(xlowi,xhii+1,1):			
-			for j in range(ylowo,ylowi+1,1):
-				bg_data.append(image_data[j,i])
-				
-		for i in range(xlowi,xhii+1,1):			
-			for j in range(yhii,yhio+1,1):
-				bg_data.append(image_data[j,i])
-				
-		for i in range(xhii,xhio+1,1):			
-			for j in range(ylowo,yhio+1,1):
-				bg_data.append(image_data[j,i])
-				
-		bg_data = np.array(bg_data)
-		ann_area = len(bg_data)
-		source_ap = CircularAperture((position),r=0.5*apermul*fwhm)
-		tot_source_bg = np.mean(bg_data)*source_ap.area()
-		return tot_source_bg, np.mean(bg_data), np.std(bg_data), ann_area
-		
-	
-	# Make sure background type is valid!
-	if (bkg_type != 'GLOBAL' and bkg_type != 'LOCAL'):
-		print('Please choose a valid background estimation')
-		sys.exit()
+	return folder_path,apermul
+
+
+def fors2_pol_phot(folder_path,apermul):
+	""" Script runs photometry for FORS2 polarimetry images """
 
 	# Read in four wave plate angle files and set up arrays for later
-	file_ang0 = os.path.join(directory,'0ang.fits')
-	file_ang225 = os.path.join(directory,'225ang.fits')
-	file_ang45 = os.path.join(directory,'45ang.fits')
-	file_ang675 = os.path.join(directory,'675ang.fits')
+	file_ang0 = os.path.join(folder_path,'0ang.fits')
+	file_ang225 = os.path.join(folder_path,'225ang.fits')
+	file_ang45 = os.path.join(folder_path,'45ang.fits')
+	file_ang675 = os.path.join(folder_path,'675ang.fits')
 
 	files = [file_ang0,file_ang225,file_ang45,file_ang675]
 	angle = ['0','225','45','675']
 	ang_dec = ['0','22.5','45','67.5']
 	label = ['$0^{\circ}$ image','$22.5^{\circ}$ image',
-			 '$45^{\circ}$ image','$67.5^{\circ}$ image']
+		'$45^{\circ}$ image','$67.5^{\circ}$ image']
+		
+	# Set up array to store FWHM and number of sources per half-wave plate
+	fwhm = []
+	numsource = []
 	
-	# Loop over files
+	# Loop over files for the four wave plate files
 	for k in range(0,len(angle),1):
 
 		# Open fits file, extract pixel flux data and remove saturated pixels
@@ -122,8 +75,8 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 			image_data = hdulist[0].data
 			
 		except FileNotFoundError as e:
-			print('Cannot find the fits file(s) you are looking for!')
-			print('Please check the input!')
+			print("Cannot find the fits file(s) you are looking for!")
+			print("Please check the input!")
 			sys.exit()
 		
 		# Remove bad pixels and mask edges
@@ -133,67 +86,100 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 		cols = len(image_data[0,:])
 		hdulist.close()
 
-		# Calculate rough estimate of background and detect the target source
-		# using DAOStarFinder
+		# Calculate estimate of background using sigma-clipping and detect
+		# the sources using DAOStarFinder
 		xord, yord = 843, 164
 		xexord, yexord = 843, 72
-		o_bmean, o_bmedian, o_bstd = sigma_clipped_stats(image_data
-			[yord-40:yord+30,:],sigma=3.0,iters=5)
-		e_bmean, e_bmedian, e_bstd = sigma_clipped_stats(image_data
-			[yexord-38:yexord+32,:],sigma=3.0,iters=5)
-		daofind_o = DAOStarFinder(fwhm=5,threshold=5*o_bstd,exclude_border=True)
-		daofind_e = DAOStarFinder(fwhm=5,threshold=5*e_bstd,exclude_border=True)
-		sources_o = daofind_o(image_data[yord-18:yord+18,xord-18:xord+18])
-		sources_e = daofind_e(image_data[yexord-18:yexord+18,xexord-18:xexord+18])
+		go_bmean, go_bmedian, go_bstd = sigma_clipped_stats(image_data
+			[yord-40:yord+40,xord-40:xord+40],sigma=3.0,iters=5)
+		ge_bmean, ge_bmedian, ge_bstd = sigma_clipped_stats(image_data
+			[yexord-40:yexord+40,xord-40:xord+40],sigma=3.0,iters=5)
+		daofind_o = DAOStarFinder(fwhm=5,threshold=5*go_bstd,
+			exclude_border=True)
+		daofind_e = DAOStarFinder(fwhm=5,threshold=5*ge_bstd,
+			exclude_border=True)
+		sources_o = daofind_o(image_data[yord-20:yord+20,xord-20:xord+20])
+		sources_e = daofind_e(image_data[yexord-20:yexord+20,xexord-20:
+			xexord+20])
 		
 		if (len(sources_o) < 1 or len(sources_e) < 1):
-			print('No source detected in',ang_dec[k],'degree image')
+			print("No source detected in",ang_dec[k],"degree image")
 			sys.exit()
 			
-		glob_bgm = [o_bmean,e_bmean]
-		glob_bgerr = [o_bstd,e_bstd]
+		if len(sources_o) != len(sources_e):
+			print("Unequal number of sources detected in o and e images!")
+			sys.exit()
+		
+		glob_bgm = [go_bmean,ge_bmean]
+		glob_bgerr = [go_bstd,ge_bstd]
 		
 		# Convert the source centroids back into detector pixels
-		sources_o['xcentroid'] = sources_o['xcentroid'] + xord - 18
-		sources_o['ycentroid'] = sources_o['ycentroid'] + yord - 18
-		sources_e['xcentroid'] = sources_e['xcentroid'] + xexord - 18
-		sources_e['ycentroid'] = sources_e['ycentroid'] + yexord - 18
+		sources_o['xcentroid'] = sources_o['xcentroid'] + xord - 20
+		sources_o['ycentroid'] = sources_o['ycentroid'] + yord - 20
+		sources_e['xcentroid'] = sources_e['xcentroid'] + xexord - 20
+		sources_e['ycentroid'] = sources_e['ycentroid'] + yexord - 20
 
-		# Estimate the FWHM of the source by simulating a 2D Gaussian (crudely)
-		fwhm = []		
-		for i in range(0,2,1):
-		
-			if i == 0:
-				data_c = image_data[yord-15:yord+15,xord-15:xord+15]
-				xpeak = int(sources_o['xcentroid']) - (xord - 15)
-				ypeak = int(sources_o['ycentroid']) - (yord - 15)
-				
-			if i == 1:
-				data_c = image_data[yexord-15:yexord+15,xexord-15:xexord+15]
-				xpeak = int(sources_e['xcentroid']) - (xexord - 15)
-				ypeak = int(sources_e['ycentroid']) - (yexord - 15)
-				
-			min_count = np.min(data_c)
-			max_count = np.max(data_c)
-			half_max = (max_count + min_count)/2
-			nearest_above_x = (np.abs(data_c[ypeak,xpeak:-1]-half_max)).argmin()
-			nearest_below_x = (np.abs(data_c[ypeak,0:xpeak]-half_max)).argmin()
-			nearest_above_y = (np.abs(data_c[ypeak:-1,xpeak]-half_max)).argmin()
-			nearest_below_y = (np.abs(data_c[0:ypeak,xpeak]-half_max)).argmin()
-			fwhm.append((nearest_above_x + (xpeak - nearest_below_x)))
-			fwhm.append((nearest_above_y + (ypeak - nearest_below_y)))
+		# Estimate the FWHM of the source by simulating a 2D Gaussian
+		# (only done on 0 angle image ensuring aperture sizes are equal)	
+		if not fwhm:
+			xpeaks_o = []
+			xpeaks_e = []
+			ypeaks_o = []
+			ypeaks_e = []
 			
-		fwhm = np.mean(fwhm)
+			for i in range(0,len(sources_o),1):			
+				data_o = image_data[yord-20:yord+20,xord-20:xord+20]
+				xpeaks_o.append(int(sources_o[i]['xcentroid']) - (xord - 20))
+				ypeaks_o.append(int(sources_o[i]['ycentroid']) - (yord - 20))
+					
+				data_e = image_data[yexord-20:yexord+20,xexord-20:xexord+20]
+				xpeaks_e.append(int(sources_e[i]['xcentroid']) - 
+					(xexord - 20))
+				ypeaks_e.append(int(sources_e[i]['ycentroid']) - 
+					(yexord - 20))
+				
+				min_count_o = np.min(data_o)
+				min_count_e = np.min(data_e)
+				max_count_o = data_o[ypeaks_o[i],xpeaks_e[i]]
+				max_count_e = data_e[ypeaks_o[i],xpeaks_e[i]]
+				half_max_o = (max_count_o + min_count_o)/2
+				half_max_e = (max_count_e + min_count_e)/2
+				
+				# Crude calculation for each source
+				nearest_above_x_o = ((np.abs(data_o[ypeaks_o[i],
+					xpeaks_o[i]:-1] - half_max_o)).argmin())
+				nearest_below_x_o = ((np.abs(data_o[ypeaks_o[i],0:
+					xpeaks_o[i]] - half_max_o)).argmin())
+				nearest_above_x_e = ((np.abs(data_e[ypeaks_e[i],
+					xpeaks_e[i]:-1] - half_max_e)).argmin())
+				nearest_below_x_e = ((np.abs(data_e[ypeaks_e[i],0:
+					xpeaks_e[i]] - half_max_e)).argmin())
+				nearest_above_y_o = ((np.abs(data_o[ypeaks_o[i]:-1,
+					xpeaks_o[i]] - half_max_o)).argmin())
+				nearest_below_y_o = ((np.abs(data_o[0:ypeaks_o[i],
+					xpeaks_o[i]] - half_max_o)).argmin())
+				nearest_above_y_e = ((np.abs(data_e[ypeaks_e[i]:-1,
+					xpeaks_e[i]] - half_max_e)).argmin())
+				nearest_below_y_e = ((np.abs(data_e[0:ypeaks_e[i],
+					xpeaks_e[i]] - half_max_e)).argmin())
+				fwhm.append((nearest_above_x_o + (xpeaks_o[i] -
+					nearest_below_x_o)))
+				fwhm.append((nearest_above_y_o + (ypeaks_o[i] -
+					nearest_below_y_o)))
+				fwhm.append((nearest_above_x_e + (xpeaks_e[i] -
+					nearest_below_x_e)))
+				fwhm.append((nearest_above_y_e + (ypeaks_e[i] -
+					nearest_below_y_e)))
+			
+			fwhm = np.mean(fwhm)
 		
 		# Stack both ord and exord sources together
 		tot_sources = vstack([sources_o,sources_e])
 				
 		# Store the ordinary and extraordinary beam source images and
 		# create apertures for aperture photometry 
-		ann_in = 4*fwhm
-		ann_out = ann_in + 10
-		positions = ((tot_sources['xcentroid'][0],tot_sources['ycentroid']
-			[0]),(tot_sources['xcentroid'][1],tot_sources['ycentroid'][1]))
+		positions = np.swapaxes(np.array((tot_sources['xcentroid'],
+			tot_sources['ycentroid']),dtype='float'),0,1)
 		aperture = CircularAperture(positions, r=0.5*apermul*fwhm)
 		phot_table = aperture_photometry(image_data,aperture)   
 					  
@@ -214,74 +200,83 @@ def fors2_pol_phot(directory,bkg_type,apermul):
 			xp[i] = xpos
 			yp[i] = ypos
 			s_area.append(np.pi*(0.5*apermul*fwhm)**2)
-			
-			if bkg_type == 'LOCAL':
-				local_back = local_back_stats([xpos,ypos])
-				fluxbgs[i] = phot_table['aperture_sum'][i] - local_back[0]
-				mean_bg[i] = local_back[1]
-				bg_err[i] = local_back[2]
-				ann_area.append(local_back[3])
-				
-			if bkg_type == 'GLOBAL':
-				fluxbgs[i] = (phot_table['aperture_sum'][i] -
-					aperture.area()*glob_bgm[i])
-				mean_bg[i] = glob_bgm[i]
-				bg_err[i] = glob_bgerr[i]
-				ann_area.append(aperture.area())			
-
+			j = i%2				
+			fluxbgs[i] = (phot_table['aperture_sum'][i] -
+				aperture.area()*glob_bgm[j])
+			mean_bg[i] = glob_bgm[j]
+			bg_err[i] = glob_bgerr[j]
+			ann_area.append(80*80)			
+		
 		# Create and save the image in z scale and overplot the ordinary and
 		# extraordinary apertures and local background annuli if applicable
-		fig = plt.figure()    
-		aperture_ord = CircularAperture((xp[0],yp[0]),r=0.5*apermul*fwhm)
-		aperture_exord = CircularAperture((xp[1],yp[1]),r=0.5*apermul*fwhm)
-		bg_annulus_ord = RectangularAnnulus((xp[0],yp[0]),w_in=ann_in,
-			w_out=ann_out,h_out=ann_out,theta=0)
-		bg_annulus_exord = RectangularAnnulus((xp[1],yp[1]),w_in=ann_in,
-			w_out=ann_out,h_out=ann_out,theta=0)
+		fig = plt.figure()
 		zscale = ZScaleInterval(image_data)
 		norm = ImageNormalize(stretch=SqrtStretch(),interval=zscale)
 		image = plt.imshow(image_data,cmap='gray',origin='lower',norm=norm)
-		aperture_ord.plot(color='blue', lw=1.5, alpha=0.5)
-		aperture_exord.plot(color='green', lw=1.5, alpha=0.5)
+		bg_annulus_o = RectangularAnnulus((843,159),w_in=0,w_out=80,h_out=80,
+			theta=0)
+		bg_annulus_e = RectangularAnnulus((843,69),w_in=0,w_out=80,h_out=80,
+			theta=0)
+		bg_annulus_o.plot(color='skyblue',lw=1.5,alpha=0.5)
+		bg_annulus_e.plot(color='lightgreen',lw=1.5,alpha=0.5)
 		
-		if bkg_type == 'LOCAL':
-			bg_annulus_ord.plot(color='skyblue', lw=1.5, alpha=0.5)
-			bg_annulus_exord.plot(color='lightgreen', lw=1.5, alpha=0.5)
+		for i in range(0,len(np.array(phot_table['id'])),1):
+			aperture = CircularAperture((xp[i],yp[i]),r=0.5*apermul*fwhm)
 			
-		plt.xlim(790,890)
-		plt.ylim(50,200)
+			if i < int(len(np.array(phot_table['id']))/2):
+				aperture.plot(color='blue',lw=1.5,alpha=0.5)
+		
+			else:
+				aperture.plot(color='green',lw=1.5,alpha=0.5)
+			
+		plt.xlim(760,920)
+		plt.ylim(20,210)
 		plt.title(label[k])
-		image_fn = directory + angle[k] + '_image.png'
+		image_fn = folder_path + angle[k] + '_image.png'
 		fig.savefig(image_fn)
 
-		# Write ordinary and extraordinary beams to file following the convention
-		# angleXXX_ord.txt and angleXXX_exord.txt
+		# Write ordinary and extraordinary beams to file following the 
+		# convention angleXXX_ord.txt and angleXXX_exord.txt
 		orig_stdout = sys.stdout
-		ord_result_file= directory + 'angle' + angle[k] + '_ord.txt'
+		ord_result_file= folder_path + 'angle' + angle[k] + '_ord.txt'
 		ordresultf = open(ord_result_file, 'w')
 		sys.stdout = ordresultf
-		print('# id, xpixel, ypixel, fluxbgs, sourcearea, meanbg, bgerr, bgarea') 
-		print(1,xp[0],yp[0],fluxbgs[0],s_area[0],mean_bg[0],bg_err[0],ann_area[0])
+		
+		print("# id, xpix, ypix, fluxbgs, sourcearea, meanbg, bgerr, bgarea") 
+		for i in range(0,int(len(np.array(phot_table['id']))/2),1):
+			print(i+1,xp[i],yp[i],fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],
+				ann_area[i])
 		sys.stdout = orig_stdout
 		ordresultf.close()
 
 		orig_stdout = sys.stdout
-		exord_result_file = directory + 'angle' + angle[k] + '_exord.txt'
+		exord_result_file = folder_path + 'angle' + angle[k] + '_exord.txt'
 		exordresultf = open(exord_result_file, 'w')
 		sys.stdout = exordresultf
-		print('# id, xpixel, ypixel, fluxbgs, sourcearea, meanbg, bgerr, bgarea')
-		print(1,xp[1],yp[1],fluxbgs[1],s_area[1],mean_bg[1],bg_err[1],ann_area[1])       
+		
+		print("# id, xpix, ypix, fluxbgs, sourcearea, meanbg, bgerr, bgarea")
+		for i in range(int(len(np.array(phot_table['id']))/2),len(np.array
+			(phot_table['id'])),1):
+			print(i+1-int(len(np.array(phot_table['id']))/2),xp[i],yp[i],
+				fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],ann_area[i])  
 		sys.stdout = orig_stdout
 		exordresultf.close()
 		
-	return 0
+		# Save the number of sources in each beam to a list
+		numsource.append(int(len(np.array(phot_table['id']))/2))
 	
-		
+	# Print number of sources per half-wave plate image
+	for i in range(0,len(numsource),1):
+		print("No of sources detected at",ang_dec[i],"degrees:",numsource[i])
+	
+	return 0
+
+	
 def main():
 	""" Run script from command line """
-	directory,bkg_type,apermul = get_args()
-	return fors2_pol_phot(directory,bkg_type,apermul)
-	
+	folder_path,apermul = get_args()
+	return fors2_pol_phot(folder_path,apermul)
+
 	
 if __name__ == '__main__':
     sys.exit(main())

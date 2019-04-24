@@ -17,6 +17,7 @@ File names for each half-wave plate angle should be:
 
 from astropy.io import fits
 from astropy.table import vstack
+from astropy.stats import sigma_clip
 from astropy.stats import sigma_clipped_stats
 from astropy.visualization import SqrtStretch
 from astropy.visualization import ZScaleInterval
@@ -86,14 +87,23 @@ def fors2_pol_phot(folder_path,apermul):
 		cols = len(image_data[0,:])
 		hdulist.close()
 
-		# Calculate estimate of background using sigma-clipping and detect
-		# the sources using DAOStarFinder
+		# Calculate estimate of background using sigma-clipping and calculate
+		# number of pixels used in the background region that were not
+		# clipped! This is done in a small area near the optical axis.
 		xord, yord = 843, 164
 		xexord, yexord = 843, 72
 		go_bmean, go_bmedian, go_bstd = sigma_clipped_stats(image_data
 			[yord-40:yord+40,xord-40:xord+40],sigma=3.0,iters=5)
 		ge_bmean, ge_bmedian, ge_bstd = sigma_clipped_stats(image_data
 			[yexord-40:yexord+40,xord-40:xord+40],sigma=3.0,iters=5)
+		mask_o = sigma_clip(image_data[yord-40:yord+40,xord-40:xord+40],sigma=3.0,
+			iters=5,masked=True)
+		mask_e = sigma_clip(image_data[yexord-40:yexord+40,xord-40:xord+40],
+			sigma=3.0,iters=5,masked=True)
+		ann_area_o = np.ma.MaskedArray.count(mask_o)
+		ann_area_e = np.ma.MaskedArray.count(mask_e)
+		
+		# Detect sources using DAO star finder
 		daofind_o = DAOStarFinder(fwhm=5,threshold=5*go_bstd,
 			exclude_border=True)
 		daofind_e = DAOStarFinder(fwhm=5,threshold=5*ge_bstd,
@@ -191,7 +201,6 @@ def fors2_pol_phot(folder_path,apermul):
 		mean_bg = np.zeros([len(s_id)])
 		bg_err = np.zeros([len(s_id)])
 		s_area = []
-		ann_area = []
 		
 		for i in range(0,len(np.array(phot_table['id'])),1):
 			s_id[i] = np.array(phot_table['id'][i])
@@ -204,8 +213,7 @@ def fors2_pol_phot(folder_path,apermul):
 			fluxbgs[i] = (phot_table['aperture_sum'][i] -
 				aperture.area()*glob_bgm[j])
 			mean_bg[i] = glob_bgm[j]
-			bg_err[i] = glob_bgerr[j]
-			ann_area.append(80*80)			
+			bg_err[i] = glob_bgerr[j]			
 		
 		# Create and save the image in z scale and overplot the ordinary and
 		# extraordinary apertures and local background annuli if applicable
@@ -245,7 +253,7 @@ def fors2_pol_phot(folder_path,apermul):
 		print("# id, xpix, ypix, fluxbgs, sourcearea, meanbg, bgerr, bgarea") 
 		for i in range(0,int(len(np.array(phot_table['id']))/2),1):
 			print(i+1,xp[i],yp[i],fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],
-				ann_area[i])
+				ann_area_o)
 		sys.stdout = orig_stdout
 		ordresultf.close()
 
@@ -258,7 +266,7 @@ def fors2_pol_phot(folder_path,apermul):
 		for i in range(int(len(np.array(phot_table['id']))/2),len(np.array
 			(phot_table['id'])),1):
 			print(i+1-int(len(np.array(phot_table['id']))/2),xp[i],yp[i],
-				fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],ann_area[i])  
+				fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],ann_area_e)  
 		sys.stdout = orig_stdout
 		exordresultf.close()
 		

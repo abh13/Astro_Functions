@@ -95,7 +95,7 @@ def master_bf(masterb):
 	
 	print("Number of bias frames used in master bias:",i)
 	
-	if len(bias_fn) > 0:
+	if i > 0:
 		bstack_mean = np.nanmean(bstack_data,axis=0)
 		bstack_std = np.nanstd(bstack_data,axis=0)
 
@@ -162,7 +162,7 @@ def master_ff(flattype,masterb,masterf):
 		
 	print("Number of flat frames used in master flat:",i)
 	
-	if len(flat_fn) > 0:
+	if i > 0:
 		fstack_sum = np.nanmean(fstack_data,axis=0)
 		fmedian = np.nanmedian(fstack_sum)
 		fstack_sum[np.isnan(fstack_sum)] = fmedian

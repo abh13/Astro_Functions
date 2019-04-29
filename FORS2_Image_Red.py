@@ -79,7 +79,7 @@ def master_bf(masterb):
 		hdulist.close()
 	
 	print("Number of bias frames in directory:",len(bias_fn))
-	bstack_data = np.zeros([len(bias_fn),940,1685])
+	bstack_data = np.zeros([len(bias_fn),940,1665])
 	i = 0
 	
 	for file in bias_fn:
@@ -88,7 +88,7 @@ def master_bf(masterb):
 		header = hdulist[0].header
 		
 		if np.shape(data) == (1034,2048):
-			bstack_data[i,:,:] = data[6:946,180:1865]
+			bstack_data[i,:,:] = data[6:946,190:1855]
 			i += 1
 			
 		hdulist.close()
@@ -104,7 +104,7 @@ def master_bf(masterb):
 		hdu.header['frames'] = len(bias_fn)
 		hdu.header['mean'] = np.nanmean(bstack_mean)
 		hdu.header['std'] = np.nanstd(bstack_std)
-		hdu.header['naxis1'] = 1685
+		hdu.header['naxis1'] = 1665
 		hdu.header['naxis2'] = 940
 		hdu.header['binning'] = 2
 
@@ -140,7 +140,7 @@ def master_ff(flattype,masterb,masterf):
 		hdulist.close()
 	
 	print("Number of flat frames in directory:",len(flat_fn))	
-	fstack_data = np.zeros([len(flat_fn),940,1685])
+	fstack_data = np.zeros([len(flat_fn),940,1665])
 	mblist = fits.open(masterb)
 	mbdata = mblist[0].data
 	mblist.close()
@@ -152,7 +152,7 @@ def master_ff(flattype,masterb,masterf):
 		header = hdulist[0].header
 		
 		if np.shape(data) == (1034,2048):
-			bc_data = data[6:946,180:1865] - mbdata
+			bc_data = data[6:946,190:1855] - mbdata
 			clipped_data = sigma_clip(bc_data,sigma_upper=3,sigma_lower=104)
 			bc_data[clipped_data.mask == True] = np.nan
 			fstack_data[i,:,:] = bc_data
@@ -181,7 +181,7 @@ def master_ff(flattype,masterb,masterf):
 		hdu.header['frames'] = len(flat_fn)
 		hdu.header['median'] = 1
 		hdu.header['std'] = fstd
-		hdu.header['naxis1'] = 1685
+		hdu.header['naxis1'] = 1665
 		hdu.header['naxis2'] = 940
 		hdu.header['binning'] = 2
 
@@ -212,7 +212,7 @@ def reduce_file(masterb,masterf,imfile):
 	imlist.close()
 	
 	if np.shape(imdata) == (1034,2048):
-		imdata_b = imdata[6:946,180:1865] - mbdata
+		imdata_b = imdata[6:946,190:1855] - mbdata
 		imdata_fb = imdata_b/mfdata
 		hdu = fits.PrimaryHDU(imdata_fb,header=imheader)
 		hdulist= fits.HDUList([hdu])

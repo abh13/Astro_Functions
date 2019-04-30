@@ -90,15 +90,15 @@ def fors2_pol_phot(folder_path,apermul):
 		# Calculate estimate of background using sigma-clipping and calculate
 		# number of pixels used in the background region that were not
 		# clipped! This is done in a small area near the optical axis.
-		xord, yord = 843, 164
-		xexord, yexord = 843, 72
+		xord, yord = 833, 164
+		xexord, yexord = 833, 72
 		go_bmean, go_bmedian, go_bstd = sigma_clipped_stats(image_data
-			[yord-40:yord+40,xord-40:xord+40],sigma=3.0,iters=5)
+			[119:199,xord-40:xord+40],sigma=3.0,iters=5)
 		ge_bmean, ge_bmedian, ge_bstd = sigma_clipped_stats(image_data
-			[yexord-40:yexord+40,xord-40:xord+40],sigma=3.0,iters=5)
-		mask_o = sigma_clip(image_data[yord-40:yord+40,xord-40:xord+40],sigma=3.0,
+			[29:109,xord-40:xord+40],sigma=3.0,iters=5)
+		mask_o = sigma_clip(image_data[119:199,xord-40:xord+40],sigma=3.0,
 			iters=5,masked=True)
-		mask_e = sigma_clip(image_data[yexord-40:yexord+40,xord-40:xord+40],
+		mask_e = sigma_clip(image_data[29:109,xord-40:xord+40],
 			sigma=3.0,iters=5,masked=True)
 		ann_area_o = np.ma.MaskedArray.count(mask_o)
 		ann_area_e = np.ma.MaskedArray.count(mask_e)
@@ -221,9 +221,9 @@ def fors2_pol_phot(folder_path,apermul):
 		zscale = ZScaleInterval(image_data)
 		norm = ImageNormalize(stretch=SqrtStretch(),interval=zscale)
 		image = plt.imshow(image_data,cmap='gray',origin='lower',norm=norm)
-		bg_annulus_o = RectangularAnnulus((843,159),w_in=0,w_out=80,h_out=80,
+		bg_annulus_o = RectangularAnnulus((xord,159),w_in=0,w_out=80,h_out=80,
 			theta=0)
-		bg_annulus_e = RectangularAnnulus((843,69),w_in=0,w_out=80,h_out=80,
+		bg_annulus_e = RectangularAnnulus((xord,69),w_in=0,w_out=80,h_out=80,
 			theta=0)
 		bg_annulus_o.plot(color='skyblue',lw=1.5,alpha=0.5)
 		bg_annulus_e.plot(color='lightgreen',lw=1.5,alpha=0.5)
@@ -237,7 +237,7 @@ def fors2_pol_phot(folder_path,apermul):
 			else:
 				aperture.plot(color='green',lw=1.5,alpha=0.5)
 			
-		plt.xlim(760,920)
+		plt.xlim(xord-85,xord+85)
 		plt.ylim(20,210)
 		plt.title(label[k])
 		image_fn = folder_path + angle[k] + '_image.png'

@@ -273,7 +273,8 @@ def fors2_pol_phot(folder_path,apermul):
 		# Save the number of sources in each beam to a list
 		numsource.append(int(len(np.array(phot_table['id']))/2))
 	
-	# Print number of sources per half-wave plate image
+	# Print FWHM and number of sources per half-wave plate image
+	print("FWHM =",fwhm,"pixels")
 	for i in range(0,len(numsource),1):
 		print("No of sources detected at",ang_dec[i],"degrees:",numsource[i])
 	

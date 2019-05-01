@@ -73,12 +73,12 @@ def master_bf(masterb):
 		hdulist = fits.open(file)
 		header = hdulist[0].header
 		
-		if header['object'] == 'BIAS':
+		if (header['object'] == 'BIAS' and header['EXTNAME'] == 'CHIP1' and
+			header['NAXIS1'] == 2048 and header['NAXIS2'] == 1034):
 			bias_fn.append(file)
 			
 		hdulist.close()
 	
-	print("Number of bias frames in directory:",len(bias_fn))
 	bstack_data = np.zeros([len(bias_fn),940,1665])
 	i = 0
 	
@@ -87,13 +87,12 @@ def master_bf(masterb):
 		data = hdulist[0].data
 		header = hdulist[0].header
 		
-		if np.shape(data) == (1034,2048):
-			bstack_data[i,:,:] = data[6:946,190:1855]
-			i += 1
+		bstack_data[i,:,:] = data[6:946,190:1855]
+		i += 1
 			
 		hdulist.close()
 	
-	print("Number of bias frames used in master bias:",i)
+	print("Number of applicable bias frames used in master:",i)
 	
 	if i > 0:
 		bstack_mean = np.nanmean(bstack_data,axis=0)
@@ -127,19 +126,20 @@ def master_ff(flattype,masterb,masterf):
 		
 		if flattype == 'IMSKY':
 		
-			if (header['object'] == 'FLAT,SKY' and 
-			header['HIERARCH ESO DPR TECH'] == 'IMAGE'):
+			if (header['object'] == 'FLAT,SKY' and header['EXTNAME'] ==
+				'CHIP1'	and	header['NAXIS1'] == 2048 and header['NAXIS2']
+				== 1034 and	header['HIERARCH ESO DPR TECH'] == 'IMAGE'):
 				flat_fn.append(file)
 				
 		if flattype == 'IMDOME':
 			
-			if (header['object'] == 'FLAT,LAMP' and 
-			header['HIERARCH ESO DPR TECH'] == 'IMAGE'):
+			if (header['object'] == 'FLAT,LAMP' and header['EXTNAME'] ==
+				'CHIP1'	and	header['NAXIS1'] == 2048 and header['NAXIS2']
+				== 1034 and	header['HIERARCH ESO DPR TECH'] == 'IMAGE'):
 				flat_fn.append(file)
 			
 		hdulist.close()
-	
-	print("Number of flat frames in directory:",len(flat_fn))	
+		
 	fstack_data = np.zeros([len(flat_fn),940,1665])
 	mblist = fits.open(masterb)
 	mbdata = mblist[0].data
@@ -151,16 +151,15 @@ def master_ff(flattype,masterb,masterf):
 		data = hdulist[0].data
 		header = hdulist[0].header
 		
-		if np.shape(data) == (1034,2048):
-			bc_data = data[6:946,190:1855] - mbdata
-			clipped_data = sigma_clip(bc_data,sigma_upper=3,sigma_lower=104)
-			bc_data[clipped_data.mask == True] = np.nan
-			fstack_data[i,:,:] = bc_data
-			i += 1
+		bc_data = data[6:946,190:1855] - mbdata
+		clipped_data = sigma_clip(bc_data,sigma_upper=3,sigma_lower=104)
+		bc_data[clipped_data.mask == True] = np.nan
+		fstack_data[i,:,:] = bc_data
+		i += 1
 			
 		hdulist.close()	
 		
-	print("Number of flat frames used in master flat:",i)
+	print("Number of applicable flat frames used in master:",i)
 	
 	if i > 0:
 		fstack_sum = np.nanmean(fstack_data,axis=0)

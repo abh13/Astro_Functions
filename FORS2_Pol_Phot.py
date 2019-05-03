@@ -41,14 +41,17 @@ def get_args():
 		help="Required directory")
 	parser.add_argument("--ap",type=float,default=2.0,dest='aperture',
 		help="Source aperture diameter X*FWHM (default = 2.0)")
+	parser.add_argument("--fwhm",type=float,default=0,dest='fwhm',
+		help="Manually set the FWHM (default = AUTO)")
 		
 	args = parser.parse_args()
 	folder_path = args.__dict__['Directory']
 	apermul = args.aperture
-	return folder_path,apermul
+	fwhm = args.fwhm
+	return folder_path,apermul,fwhm
 
 
-def fors2_pol_phot(folder_path,apermul):
+def fors2_pol_phot(folder_path,apermul,fwhm):
 	""" Script runs photometry for FORS2 polarimetry images """
 
 	# Read in four wave plate angle files and set up arrays for later
@@ -63,8 +66,7 @@ def fors2_pol_phot(folder_path,apermul):
 	label = ['$0^{\circ}$ image','$22.5^{\circ}$ image',
 		'$45^{\circ}$ image','$67.5^{\circ}$ image']
 		
-	# Set up array to store FWHM and number of sources per half-wave plate
-	fwhm = []
+	# Set up array to store the number of sources per half-wave plate
 	numsource = []
 	
 	# Loop over files for the four wave plate files
@@ -130,12 +132,15 @@ def fors2_pol_phot(folder_path,apermul):
 		sources_e['ycentroid'] = sources_e['ycentroid'] + yexord - 20
 
 		# Estimate the FWHM of the source by simulating a 2D Gaussian
-		# (only done on 0 angle image ensuring aperture sizes are equal)	
-		if not fwhm:
+		# This is only done on the 0 angle image ensuring aperture sizes
+		# are equal for all half-wave plate angles. If a user specified
+		# FWHM is given, then the estimation is not used.
+		if fwhm == 0.0:
 			xpeaks_o = []
 			xpeaks_e = []
 			ypeaks_o = []
 			ypeaks_e = []
+			fwhm = []
 			
 			for i in range(0,len(sources_o),1):			
 				data_o = image_data[yord-20:yord+20,xord-20:xord+20]
@@ -283,8 +288,8 @@ def fors2_pol_phot(folder_path,apermul):
 	
 def main():
 	""" Run script from command line """
-	folder_path,apermul = get_args()
-	return fors2_pol_phot(folder_path,apermul)
+	folder_path,apermul,fwhm = get_args()
+	return fors2_pol_phot(folder_path,apermul,fwhm)
 
 	
 if __name__ == '__main__':

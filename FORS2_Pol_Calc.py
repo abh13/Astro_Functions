@@ -20,13 +20,16 @@ def get_args():
 	parser = argparse.ArgumentParser(description=__doc__)
 	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
 		help="Required directory")
+	parser.add_argument("--gain",type=float,default=1.25,dest='gain',
+		help="Manually choose the gain - electrons per ADU (default = 1.25)")
 		
 	args = parser.parse_args()
 	directory = args.__dict__['Directory']
-	return directory
+	gain = args.gain
+	return directory,gain
 	
 
-def fors2_pol(directory):
+def fors2_pol(directory,gain):
 	""" Calculates polarisation measurments from FORS1 observations.
 	Requires the four angle ord and exord files to be in the directory.
 	"""
@@ -70,10 +73,9 @@ def fors2_pol(directory):
 		return target_list
 
 	
-	def flux_error(beam_info,target_list):
+	def flux_error(beam_info,target_list,gain):
 		# Calculates the flux uncertainty for each source per angle per beam
 		flux_error = []
-		gain = 1.25
 		k = 1
 		nd = 1
 		eta = 1
@@ -305,15 +307,15 @@ def fors2_pol(directory):
 		sys.exit()
 		
 	# Calculate and store flux errors
-	ordin_fluxerr_0 = flux_error(ordin_data_0,target_list)
-	ordin_fluxerr_22 = flux_error(ordin_data_22,target_list)
-	ordin_fluxerr_45 = flux_error(ordin_data_45,target_list)
-	ordin_fluxerr_67 = flux_error(ordin_data_67,target_list)
+	ordin_fluxerr_0 = flux_error(ordin_data_0,target_list,gain)
+	ordin_fluxerr_22 = flux_error(ordin_data_22,target_list,gain)
+	ordin_fluxerr_45 = flux_error(ordin_data_45,target_list,gain)
+	ordin_fluxerr_67 = flux_error(ordin_data_67,target_list,gain)
 
-	extra_fluxerr_0 = flux_error(extra_data_0,target_list)
-	extra_fluxerr_22 = flux_error(extra_data_22,target_list)
-	extra_fluxerr_45 = flux_error(extra_data_45,target_list)
-	extra_fluxerr_67 = flux_error(extra_data_67,target_list)
+	extra_fluxerr_0 = flux_error(extra_data_0,target_list,gain)
+	extra_fluxerr_22 = flux_error(extra_data_22,target_list,gain)
+	extra_fluxerr_45 = flux_error(extra_data_45,target_list,gain)
+	extra_fluxerr_67 = flux_error(extra_data_67,target_list,gain)
 	
 	# Calculate and store normalised flux values and errors
 	norm_flux_0,norm_flux_err_0 = norm_flux(ordin_data_0,extra_data_0,
@@ -420,8 +422,8 @@ def fors2_pol(directory):
 
 def main():
 	""" Run Script """
-	directory = get_args()
-	return fors2_pol(directory)
+	directory,gain = get_args()
+	return fors2_pol(directory,gain)
 	
 	
 if __name__ == '__main__':

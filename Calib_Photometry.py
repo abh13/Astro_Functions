@@ -35,7 +35,7 @@ def get_args():
 	parser.add_argument('Image File',metavar='FILE',type=str,action='store',
 		help='Name of the image fits file (xxxx.fits)')
 	parser.add_argument('--g',type=float,default=1.1,dest='gain',
-		help='Gain (default = 1.1)')
+		help='Detector gain in electrons per ADU (default = 1.1)')
 	parser.add_argument('--d',type=str,default=os.getcwd(),dest='directory',
 		help='Desired directory (default = current directory)')
 	parser.add_argument('--sr',type=float,default=5,dest='searchrad',
@@ -703,7 +703,7 @@ def mag_calib(directory,star_ra,star_dec,star_mag,star_magerr,star_cat,
 		def line2(x,c):
 			return 0*x + c
 
-		param, pcov = curve_fit(line1, xdata, ydata, sigma=yerrors)
+		param, pcov = curve_fit(line1, xdata, ydata)
 		paramerr = np.sqrt(np.diag(pcov))
 
 		# Plot real mag vs instrumental mag, 1-sigma errors and clipped data

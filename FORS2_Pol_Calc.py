@@ -39,7 +39,6 @@ def fors2_pol(directory,gain):
 	def beam_data(angle_file):
 		# Extracts data for all targets per angle of selected beam	
 		total_data = {}
-		target_list = []
 		
 		cols = ['x','y','flux','area','msky','st_dev','n_sky']
 		beam_data = pd.read_csv(angle_file,header=0,names=cols,

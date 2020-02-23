@@ -29,6 +29,7 @@ from photutils import RectangularAnnulus
 from photutils.utils import calc_total_error
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import os
 import sys
 import argparse
@@ -190,7 +191,7 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 		
 		# Stack both ord and exord sources together
 		tot_sources = vstack([sources_o,sources_e])
-				
+			
 		# Store the ordinary and extraordinary beam source images and
 		# create apertures for aperture photometry 
 		positions = np.swapaxes(np.array((tot_sources['xcentroid'],
@@ -248,32 +249,29 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 		image_fn = folder_path + angle[k] + '_image.png'
 		fig.savefig(image_fn)
 
-		# Write ordinary and extraordinary beams to file following the 
-		# convention angleXXX_ord.txt and angleXXX_exord.txt
-		orig_stdout = sys.stdout
-		ord_result_file= folder_path + 'angle' + angle[k] + '_ord.txt'
-		ordresultf = open(ord_result_file, 'w')
-		sys.stdout = ordresultf
+		# Create dataframes for photometry results
+		cols = ['xpix','ypix','fluxbgs','sourcearea','meanbg','bgerr',
+			'bgarea']
+		df_o = pd.DataFrame(columns=cols)
+		df_e = pd.DataFrame(columns=cols)
 		
-		print("# id, xpix, ypix, fluxbgs, sourcearea, meanbg, bgerr, bgarea") 
-		for i in range(0,int(len(np.array(phot_table['id']))/2),1):
-			print(i+1,xp[i],yp[i],fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],
-				ann_area_o)
-		sys.stdout = orig_stdout
-		ordresultf.close()
-
-		orig_stdout = sys.stdout
-		exord_result_file = folder_path + 'angle' + angle[k] + '_exord.txt'
-		exordresultf = open(exord_result_file, 'w')
-		sys.stdout = exordresultf
+		for i in range(0,len(np.array(phot_table['id'])),1):
+			if 0 <= i < int(len(np.array(phot_table['id']))/2):
+				df_o = df_o.append({cols[0]:xp[i],cols[1]:yp[i],
+					cols[2]:fluxbgs[i],cols[3]:s_area[i],cols[4]:mean_bg[i],
+					cols[5]:bg_err[i],cols[6]:ann_area_o},ignore_index=True)
+					
+			else:
+				df_e = df_e.append({cols[0]:xp[i],cols[1]:yp[i],
+					cols[2]:fluxbgs[i],cols[3]:s_area[i],cols[4]:mean_bg[i],
+					cols[5]:bg_err[i],cols[6]:ann_area_e},ignore_index=True)
 		
-		print("# id, xpix, ypix, fluxbgs, sourcearea, meanbg, bgerr, bgarea")
-		for i in range(int(len(np.array(phot_table['id']))/2),len(np.array
-			(phot_table['id'])),1):
-			print(i+1-int(len(np.array(phot_table['id']))/2),xp[i],yp[i],
-				fluxbgs[i],s_area[i],mean_bg[i],bg_err[i],ann_area_e)  
-		sys.stdout = orig_stdout
-		exordresultf.close()
+		# Save dataframes to text files
+		df_o.to_string(folder_path+'angle'+angle[k]+'_ord.txt',
+			index=False,justify='left')
+		
+		df_e.to_string(folder_path+'angle'+angle[k]+'_exord.txt',
+			index=False,justify='left')
 		
 		# Save the number of sources in each beam to a list
 		numsource.append(int(len(np.array(phot_table['id']))/2))

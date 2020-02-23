@@ -10,6 +10,7 @@ convention - angleXXX_ord.txt/angleXXX_exord.txt
 """
 
 import numpy as np
+import pandas as pd
 import os
 import sys
 import argparse
@@ -18,10 +19,10 @@ import argparse
 def get_args():
 	""" Parse command line arguments """
 	parser = argparse.ArgumentParser(description=__doc__)
-	parser.add_argument("Directory",metavar="DIR",type=str,action="store",
-		help="Required directory")
-	parser.add_argument("--gain",type=float,default=1.25,dest='gain',
-		help="Manually choose the gain - electrons per ADU (default = 1.25)")
+	parser.add_argument('Directory',metavar='DIR',type=str,action='store',
+		help='Required directory')
+	parser.add_argument('--gain',type=float,default=1.25,dest='gain',
+		help='Manually choose the gain - electrons per ADU (default = 1.25)')
 		
 	args = parser.parse_args()
 	directory = args.__dict__['Directory']
@@ -35,42 +36,16 @@ def fors2_pol(directory,gain):
 	"""
 
 	
-	def beam_data(beam_angle):
+	def beam_data(angle_file):
 		# Extracts data for all targets per angle of selected beam	
 		total_data = {}
 		target_list = []
 		
-		f = open(beam_angle,'r')
-		data = np.genfromtxt(beam_angle,delimiter='',dtype=float,skip_header=1,
-			usecols=[1,2,3,4,5,6,7],unpack=True)
-		x_centre = np.atleast_1d(data[0])
-		y_centre = np.atleast_1d(data[1])
-		fluxbgs = np.atleast_1d(data[2])
-		sourcearea = np.atleast_1d(data[3])
-		meanbg = np.atleast_1d(data[4])
-		bgstd = np.atleast_1d(data[5])
-		bgarea = np.atleast_1d(data[6])
-		
-		for i in range(len(x_centre)):		
-			name = 'Source '+ str(i+1)
-			total_data[name] = {'x': x_centre[i], 'y': y_centre[i],
-				'flux': fluxbgs[i], 'area': sourcearea[i],
-				'msky': meanbg[i], 'st dev': bgstd[i],'n sky': bgarea[i]}
-				
-		f.close()
-		return total_data
-
+		cols = ['x','y','flux','area','msky','st_dev','n_sky']
+		beam_data = pd.read_csv(angle_file,header=0,names=cols,
+			delim_whitespace=True)
 	
-	def target_list(data_list):
-		# Creates a target list with main target and relevant
-		# number of field stars
-		target_list = []
-
-		for i in range(0,len(data_list),1):		
-			name = 'Source '+ str(i+1)
-			target_list.append(name)
-
-		return target_list
+		return beam_data
 
 	
 	def flux_error(beam_info,target_list,gain):
@@ -81,13 +56,11 @@ def fors2_pol(directory,gain):
 		eta = 1
 	   
 		for i in range(0,len(target_list),1):		
-			flux_err1 = beam_info[target_list[i]]['flux']/(gain*eta*nd)
-			flux_err2 = (beam_info[target_list[i]]['area']*
-				beam_info[target_list[i]]['st dev']*
-				beam_info[target_list[i]]['st dev'])
-			flux_err3 = ((k/beam_info[target_list[i]]['n sky'])*
-				(beam_info[target_list[i]]['area']*
-				beam_info[target_list[i]]['st dev'])**2)
+			flux_err1 = beam_info.flux[i]/(gain*eta*nd)
+			flux_err2 = (beam_info.area[i]*beam_info.st_dev[i]*
+				beam_info.st_dev[i])
+			flux_err3 = ((k/beam_info.n_sky[i])*
+				(beam_info.area[i]*beam_info.st_dev[i])**2)
 			
 			flux_error_calc = np.sqrt(flux_err1 + flux_err2 + flux_err3)
 			flux_error.append(flux_error_calc)
@@ -103,17 +76,13 @@ def fors2_pol(directory,gain):
 		norm_flux_err = []
 		
 		for i in range(0,len(target_list),1):		
-			nf1 = (ordin_beam[target_list[i]]['flux']-
-				extra_beam[target_list[i]]['flux'])
-			nf2 = (ordin_beam[target_list[i]]['flux']+
-				extra_beam[target_list[i]]['flux'])
+			nf1 = (ordin_beam.flux[i]-extra_beam.flux[i])
+			nf2 = (ordin_beam.flux[i]+extra_beam.flux[i])
 			norm_flux = nf1/nf2
 			norm_flux_value.append(norm_flux)
 			a = np.sqrt((ordin_fluxerr[i]**2)+(extra_fluxerr[i]**2))
-			b = (ordin_beam[target_list[i]]['flux']-
-				extra_beam[target_list[i]]['flux'])
-			c = (ordin_beam[target_list[i]]['flux']+
-				extra_beam[target_list[i]]['flux'])
+			b = (ordin_beam.flux[i]-extra_beam.flux[i])
+			c = (ordin_beam.flux[i]+extra_beam.flux[i])
 			norm_flux_e = norm_flux*np.sqrt(((a/b)**2)+((a/c)**2))
 			norm_flux_err.append(norm_flux_e)
 
@@ -194,14 +163,11 @@ def fors2_pol(directory,gain):
 				**2)+((0.5*norm_flux_err_22[i]*np.sin(4*22.5*dtr))**2)+
 				((0.5*norm_flux_err_45[i]*np.sin(4*45*dtr))**2)+
 				((0.5*norm_flux_err_67[i]*np.sin(4*67.5*dtr))**2)))
-			flux_sig.append(1/(np.sqrt((ordin_data_0[target_list[i]]['flux']+
-				extra_data_0[target_list[i]]['flux']+
-				ordin_data_22[target_list[i]]['flux']+
-				extra_data_22[target_list[i]]['flux']+
-				ordin_data_45[target_list[i]]['flux']+
-				extra_data_45[target_list[i]]['flux']+
-				ordin_data_67[target_list[i]]['flux']+
-				extra_data_67[target_list[i]]['flux'])/4)))
+			flux_sig.append(1/(np.sqrt((ordin_data_0.flux[i]+
+				extra_data_0.flux[i]+ordin_data_22.flux[i]+
+				extra_data_22.flux[i]+ordin_data_45.flux[i]+
+				extra_data_45.flux[i]+ordin_data_67.flux[i]+
+				extra_data_67.flux[i])/4)))
 
 		for j in range(0,len(target_list),1):
 			sig_p.append(np.sqrt((q_values[j]**2*q_errors[j]**2+u_values[j]**2
@@ -212,7 +178,7 @@ def fors2_pol(directory,gain):
 
 		return(q_errors,u_errors,sig_p,flux_sig,theta_errors)  
 		
-
+	
 	def estimated_polarisation(ordin_data_0,extra_data_0,ordin_data_22,
 		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
 		ordin_fluxerr_0,ordin_fluxerr_22,ordin_fluxerr_45,ordin_fluxerr_67,
@@ -229,17 +195,13 @@ def fors2_pol(directory,gain):
 		p_corr = []
 		
 		for i in range(0,len(target_list),1):
-			snr_f0.append((ordin_data_0[target_list[i]]['flux']+
-				extra_data_0[target_list[i]]['flux'])/
+			snr_f0.append((ordin_data_0.flux[i]+extra_data_0.flux[i])/
 				np.sqrt((ordin_fluxerr_0[i]**2)+(extra_fluxerr_0[i]**2)))
-			snr_f22.append((ordin_data_22[target_list[i]]['flux']+
-				extra_data_22[target_list[i]]['flux'])/
+			snr_f22.append((ordin_data_22.flux[i]+extra_data_22.flux[i])/
 				np.sqrt((ordin_fluxerr_22[i]**2)+(extra_fluxerr_22[i]**2)))
-			snr_f45.append((ordin_data_45[target_list[i]]['flux']+
-				extra_data_45[target_list[i]]['flux'])/
+			snr_f45.append((ordin_data_45.flux[i]+extra_data_45.flux[i])/
 				np.sqrt((ordin_fluxerr_45[i]**2)+(extra_fluxerr_45[i]**2)))
-			snr_f67.append((ordin_data_67[target_list[i]]['flux']+
-				extra_data_67[target_list[i]]['flux'])/
+			snr_f67.append((ordin_data_67.flux[i]+extra_data_67.flux[i])/
 				np.sqrt((ordin_fluxerr_67[i]**2)+(extra_fluxerr_67[i]**2)))
 
 		for j in range(0,len(target_list),1):
@@ -254,7 +216,7 @@ def fors2_pol(directory,gain):
 						   
 		return(eta,p_corr)
 
-		
+	
 	# Begin by reading in files
 	folder_path = directory
 	file_name_ord0 = 'angle0_ord.txt'
@@ -295,13 +257,16 @@ def fors2_pol(directory,gain):
 		sys.exit()
 
 	# Creates target list of sources
-	target_list = target_list(ordin_data_0)
+	target_list = []
+	for i in range(0,len(ordin_data_0.x),1):	
+		name = 'Source '+ str(i+1)
+		target_list.append(name)
 
 	# Ensure all angles in both ordinary and extraordinary beams have the
 	# same number of sources
-	if (len(ordin_data_0) or len(ordin_data_22) or len(ordin_data_45) or 
-		len(ordin_data_67)) != (len(extra_data_0) != len(extra_data_22) or 
-		len(extra_data_45) or len(extra_data_67)):
+	if (len(ordin_data_0.x) or len(ordin_data_22.x) or len(ordin_data_45.x)
+		or len(ordin_data_67.x)) != (len(extra_data_0.x) or
+		len(extra_data_22.x) or len(extra_data_45.x) or len(extra_data_67.x)):
 		
 		print('One or more data files have unequal numbers of sources!')
 		sys.exit()
@@ -353,70 +318,29 @@ def fors2_pol(directory,gain):
 
 	eta_values,p_corr_values = pol_values
 
-	# Convert pol values into percentages
-	q_values = [x * 100 for x in q_values]
-	q_errors = [x * 100 for x in q_errors]
-	u_values = [x * 100 for x in u_values]
-	u_errors = [x * 100 for x in u_errors]
-	p_values = [x * 100 for x in p_values]
-	sig_p = [x * 100 for x in sig_p]
-	p_corr_values = [x * 100 for x in p_corr_values]     
-		
-	# Round all values to 5 significant figures
-	q = []
-	q_err = []
-	u = []
-	u_err = []
-	p = []
-	sigma_p = []
-	p_corr = []
-	theta = []
-	theta_err = []
-	eta = []
-
-	for i in range(0,len(target_list),1):
-		q.append(round(q_values[i],5))
-		q_err.append(round(q_errors[i],5))
-		u.append(round(u_values[i],5))
-		u_err.append(round(u_errors[i],5))
-		p.append(round(p_values[i],5))
-		sigma_p.append(round(sig_p[i],5))
-		p_corr.append(round(p_corr_values[i],5))
-		theta.append(round(corr_theta_values[i],5))
-		theta_err.append(round(theta_errors[i],5))
-		eta.append(round(eta_values[i],5))
-
-	# Write results to file    
-	orig_stdout = sys.stdout
-	result_file=folder_path+'source_results.txt'
-	resultf = open(result_file, "w")
-	sys.stdout = resultf
-
-	print('                         ### RESULTS ###                         ')
-	print('-----------------------------------------------------------------')
-	print('')
-	print('Qm(%)  Q Err(%)  Um(%)  U Err(%)')
+	# Convert pol values into percentages and round to 5 s.f
+	q_values = [round(x*100,5) for x in q_values]
+	q_errors = [round(x*100,5) for x in q_errors]
+	u_values = [round(x*100,5) for x in u_values]
+	u_errors = [round(x*100,5) for x in u_errors]
+	p_values = [round(x*100,5) for x in p_values]
+	sig_p = [round(x*100,5) for x in sig_p]
+	p_corr_values = [round(x*100,5) for x in p_corr_values]
+	corr_theta_values = [round(x,5) for x in corr_theta_values]
+	theta_errors = [round(x,5) for x in theta_errors]
+	eta_values = [round(x,5) for x in eta_values]
 	
-	for i in range(0,len(target_list),1):
-		print(q[i],q_err[i],u[i],u_err[i])
-		
-	print('')
-	print('Pm(%)    SNR    Sig_P(%)    Pcorr(%)')
-	
-	for j in range(0,len(target_list),1):
-		print(p[j],round(p_corr[j]/sig_p[j],5),sigma_p[j],p_corr[j])
-		
-	print('')
-	print('Ang    Ang Err')
-	
-	for k in range(0,len(target_list),1):
-		print(theta[k],theta_err[k])
-		
-	print('')
-	print('-----------------------------------------------------------------')
-
-	sys.stdout = orig_stdout
-	resultf.close()
+	# Create dataframes and save results to file
+	cols = ['Qm(%)','Q Err(%)','Um(%)','U Err(%)','Pm(%)','SNR','Sig_P(%)',
+		'Pcorr(%)','Angle','Angle Err']
+	df = pd.DataFrame(columns=cols)
+	for i in range(len(q_values)):
+		df = df.append({cols[0]:q_values[i],cols[1]:q_errors[i],
+			cols[2]:u_values[i],cols[3]:u_errors[i],cols[4]:p_values[i],
+			cols[5]:round(p_corr_values[i]/sig_p[i],5),cols[6]:sig_p[i],
+			cols[7]:p_corr_values[i],cols[8]:corr_theta_values[i],
+			cols[9]:theta_errors[i]},ignore_index=True)
+	df.to_string(folder_path+'source_results.txt',index=False,justify='left')
 	return 0
 	
 

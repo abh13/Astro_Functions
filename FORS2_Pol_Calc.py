@@ -142,9 +142,9 @@ def fors2_pol(directory,gain):
 		
 
 	def parameter_errors(norm_flux_err_0,norm_flux_err_22,norm_flux_err_45,
-		norm_flux_err_67,p_values,ordin_data_0,extra_data_0,ordin_data_22,
-		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
-		target_list):
+		norm_flux_err_67,p_values,q_values,u_values,ordin_data_0,extra_data_0,
+		ordin_data_22,extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,
+		extra_data_67,target_list):
 		# Calculate errors on Q, U, P, Theta, SD of the average flux per angle
 		q_errors = []
 		u_errors = []
@@ -302,10 +302,11 @@ def fors2_pol(directory,gain):
 	
 	# Calculate errors on Q, U and P, theta and flux P
 	data_array = parameter_errors(norm_flux_err_0,norm_flux_err_22,
-		norm_flux_err_45,norm_flux_err_67,p_values,ordin_data_0,
-		extra_data_0,ordin_data_22,extra_data_22,ordin_data_45,
-		extra_data_45,ordin_data_67,extra_data_67,target_list)
-				 
+		norm_flux_err_45,norm_flux_err_67,p_values,q_values,u_values,
+		ordin_data_0,extra_data_0,ordin_data_22,extra_data_22,
+		ordin_data_45,extra_data_45,ordin_data_67,extra_data_67,
+		target_list)
+
 	q_errors,u_errors,sig_p,flux_sig,theta_errors = data_array
 
 	# Calculate eta and corrected P values

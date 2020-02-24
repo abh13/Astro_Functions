@@ -37,7 +37,7 @@ def fors2_pol(directory,gain):
 
 	
 	def beam_data(angle_file):
-		# Extracts data for all targets per angle of selected beam	
+		# Extracts data for all targets per angle of selected beam
 		total_data = {}
 		
 		cols = ['x','y','flux','area','msky','st_dev','n_sky']
@@ -212,7 +212,7 @@ def fors2_pol(directory,gain):
 		for l in range(0,len(target_list),1):
 			p_corr.append(p_values[l]-(sig_p[l]**2*(1-np.exp(-(p_values[l]**2/
 				sig_p[l]**2)))/(2*p_values[l])))
-						   
+		
 		return(eta,p_corr)
 
 	
@@ -309,8 +309,8 @@ def fors2_pol(directory,gain):
 	q_errors,u_errors,sig_p,flux_sig,theta_errors = data_array
 
 	# Calculate eta and corrected P values
-	pol_values = estimated_polarisation(ordin_data_0,extra_data_0,ordin_data_22,
-		extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,
+	pol_values = estimated_polarisation(ordin_data_0,extra_data_0,
+		ordin_data_22,extra_data_22,ordin_data_45,extra_data_45,ordin_data_67,
 		extra_data_67,ordin_fluxerr_0,ordin_fluxerr_22,ordin_fluxerr_45,
 		ordin_fluxerr_67,extra_fluxerr_0,extra_fluxerr_22,extra_fluxerr_45,
 		extra_fluxerr_67,p_values,sig_p,target_list)
@@ -328,17 +328,14 @@ def fors2_pol(directory,gain):
 	corr_theta_values = [round(x,5) for x in corr_theta_values]
 	theta_errors = [round(x,5) for x in theta_errors]
 	eta_values = [round(x,5) for x in eta_values]
+	snr = [round(x/y,5) for x, y in zip(p_corr_values,sig_p)]
 	
 	# Create dataframes and save results to file
 	cols = ['Qm(%)','Q Err(%)','Um(%)','U Err(%)','Pm(%)','SNR','Sig_P(%)',
 		'Pcorr(%)','Angle','Angle Err']
-	df = pd.DataFrame(columns=cols)
-	for i in range(len(q_values)):
-		df = df.append({cols[0]:q_values[i],cols[1]:q_errors[i],
-			cols[2]:u_values[i],cols[3]:u_errors[i],cols[4]:p_values[i],
-			cols[5]:round(p_corr_values[i]/sig_p[i],5),cols[6]:sig_p[i],
-			cols[7]:p_corr_values[i],cols[8]:corr_theta_values[i],
-			cols[9]:theta_errors[i]},ignore_index=True)
+	df = pd.DataFrame({cols[0]:q_values,cols[1]:q_errors,cols[2]:u_values,
+		cols[3]:u_errors,cols[4]:p_values,cols[5]:snr,cols[6]:sig_p,
+		cols[7]:p_corr_values,cols[8]:corr_theta_values,cols[9]:theta_errors})
 	df.to_string(folder_path+'source_results.txt',index=False,justify='left')
 	return 0
 	

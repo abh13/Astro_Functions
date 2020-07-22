@@ -96,13 +96,13 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 		xord, yord = 833, 164
 		xexord, yexord = 833, 72
 		go_bmean, go_bmedian, go_bstd = sigma_clipped_stats(image_data
-			[119:199,xord-40:xord+40],sigma=3.0,iters=5)
+			[119:199,xord-40:xord+40],sigma=3.0,maxiters=5)
 		ge_bmean, ge_bmedian, ge_bstd = sigma_clipped_stats(image_data
-			[29:109,xord-40:xord+40],sigma=3.0,iters=5)
+			[29:109,xord-40:xord+40],sigma=3.0,maxiters=5)
 		mask_o = sigma_clip(image_data[119:199,xord-40:xord+40],sigma=3.0,
-			iters=5,masked=True)
+			maxiters=5,masked=True)
 		mask_e = sigma_clip(image_data[29:109,xord-40:xord+40],
-			sigma=3.0,iters=5,masked=True)
+			sigma=3.0,maxiters=5,masked=True)
 		ann_area_o = np.ma.MaskedArray.count(mask_o)
 		ann_area_e = np.ma.MaskedArray.count(mask_e)
 		
@@ -115,7 +115,7 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 		sources_e = daofind_e(image_data[yexord-20:yexord+20,xexord-20:
 			xexord+20])
 		
-		if (len(sources_o) < 1 or len(sources_e) < 1):
+		if (sources_o is None) or (sources_e is None):
 			print("No source detected in",ang_dec[k],"degree image")
 			sys.exit()
 			
@@ -217,7 +217,7 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 			s_area.append(np.pi*(0.5*apermul*fwhm)**2)
 			j = i%2				
 			fluxbgs[i] = (phot_table['aperture_sum'][i] -
-				aperture.area()*glob_bgm[j])
+				aperture.area*glob_bgm[j])
 			mean_bg[i] = glob_bgm[j]
 			bg_err[i] = glob_bgerr[j]			
 		
@@ -227,9 +227,9 @@ def fors2_pol_phot(folder_path,apermul,fwhm):
 		zscale = ZScaleInterval(image_data)
 		norm = ImageNormalize(stretch=SqrtStretch(),interval=zscale)
 		image = plt.imshow(image_data,cmap='gray',origin='lower',norm=norm)
-		bg_annulus_o = RectangularAnnulus((xord,159),w_in=0,w_out=80,h_out=80,
+		bg_annulus_o = RectangularAnnulus((xord,159),w_in=0.1,w_out=80,h_out=80,
 			theta=0)
-		bg_annulus_e = RectangularAnnulus((xord,69),w_in=0,w_out=80,h_out=80,
+		bg_annulus_e = RectangularAnnulus((xord,69),w_in=0.1,w_out=80,h_out=80,
 			theta=0)
 		bg_annulus_o.plot(color='skyblue',lw=1.5,alpha=0.5)
 		bg_annulus_e.plot(color='lightgreen',lw=1.5,alpha=0.5)

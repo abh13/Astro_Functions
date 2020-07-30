@@ -251,9 +251,8 @@ def fors2_pol(directory,gain):
 		extra_data_45 = beam_data(extra_beam[2])
 		extra_data_67 = beam_data(extra_beam[3])
 		
-	except FileNotFoundError as e:
-		print('Cannot find the folder or files you are looking for')
-		sys.exit()
+	except FileNotFoundError:
+		raise FileNotFoundError('Cannot find the folder or files.')
 
 	# Creates target list of sources
 	target_list = []
@@ -267,8 +266,7 @@ def fors2_pol(directory,gain):
 		or len(ordin_data_67.x)) != (len(extra_data_0.x) or
 		len(extra_data_22.x) or len(extra_data_45.x) or len(extra_data_67.x)):
 		
-		print('One or more data files have unequal numbers of sources!')
-		sys.exit()
+		raise ValueError('One or more files have unequal number of sources!')
 		
 	# Calculate and store flux errors
 	ordin_fluxerr_0 = flux_error(ordin_data_0,target_list,gain)

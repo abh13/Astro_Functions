@@ -61,9 +61,8 @@ def get_args():
 		return directory,task,flattype,masterb,masterf,imfile
 		
 	else:
-		print("Error in arguments. Check number of arguments for task!")
-		sys.exit()
-		
+		raise ValueError("Check number of arguments for task!")
+
 
 def master_bf(masterb):
 	""" Produces a master bias fits file """
@@ -99,7 +98,7 @@ def master_bf(masterb):
 		bstack_std = np.nanstd(bstack_data,axis=0)
 
 		hdu = fits.PrimaryHDU(bstack_mean)
-		hdu.header['object'] = 'BIAS'
+		hdu.header['object'] = 'MASTER BIAS'
 		hdu.header['frames'] = len(bias_fn)
 		hdu.header['mean'] = np.nanmean(bstack_mean)
 		hdu.header['std'] = np.nanstd(bstack_std)
@@ -112,8 +111,7 @@ def master_bf(masterb):
 		return 0
 	
 	else:
-		print("No applicable bias frames!")
-		sys.exit()
+		raise FileNotFoundError("No applicable bias frames!")
 
 	
 def master_ff(flattype,masterb,masterf):
@@ -189,10 +187,9 @@ def master_ff(flattype,masterb,masterf):
 		return 0
 		
 	else:
-		print("No applicable flat frames")
-		sys.exit()
-		
-		
+		raise FileNotFoundError("No applicable flat frames")
+	
+	
 def reduce_file(masterb,masterf,imfile):
 	""" Reduces the raw science image, subtracting the flats and bias frames
 	either created with this script or existing ones that have been read in.
@@ -220,9 +217,8 @@ def reduce_file(masterb,masterf,imfile):
 		return 0
 		
 	else:
-		print("Raw image data is not of initial shape 2048x1034")
-		sys.exit()
-		
+		raise ValueError("Raw image data is not of initial shape 2048x1034")
+
 	
 def main():
 	""" Run script from command line """
